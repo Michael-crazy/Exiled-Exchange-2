@@ -8,6 +8,7 @@ import type { ItemCheckWidget } from "./item-check/widget";
 import type { ItemSearchWidget } from "./item-search/widget";
 import { registry as widgetRegistry } from "./overlay/widget-registry.js";
 import { LibraryWidget } from "./library/widget";
+import type { AssistantEvalWidget } from "./assistant/widget";
 
 const _config = shallowRef<Config | null>(null);
 let _lastSavedConfig: Config | null = null;
@@ -145,7 +146,9 @@ export interface Config {
   stashScroll: boolean;
   language: "en" | "ru" | "cmn-Hant" | "ko" | "ja" | "de" | "es" | "pt" | "fr";
   preferredTradeSite: "default" | "www";
-  realm: "pc-ggg" | "pc-garena";
+  realm: "pc-ggg" | "pc-garena" | "pc-tencent";
+  // Language and realm follow the running game client.
+  followGame: boolean;
   widgets: widget.Widget[];
   fontSize: number;
   showAttachNotification: boolean;
@@ -157,7 +160,7 @@ export interface Config {
 }
 
 export const defaultConfig = (): Config => ({
-  configVersion: 35,
+  configVersion: 36,
   overlayKey: "Shift + Space",
   overlayBackground: "rgba(129, 139, 149, 0.15)",
   overlayBackgroundClose: true,
@@ -199,13 +202,14 @@ export const defaultConfig = (): Config => ({
   ],
   clientLog: null,
   gameConfig: null,
-  windowTitle: "Path of Exile 2",
+  windowTitle: "",
   logKeys: false,
   accountName: "",
   stashScroll: true,
   language: "en",
   preferredTradeSite: "default",
   realm: "pc-ggg",
+  followGame: true,
   fontSize: 16,
   widgets: widgetRegistry.widgets.reduce<widget.Widget[]>(
     (widgets, { widget }) => {
@@ -684,6 +688,20 @@ function upgradeConfig(_config: Config): Config {
 
     config.configVersion = 35;
   }
+
+  if (config.configVersion < 36) {
+    // PoE2 assistant: game detection and item evaluation
+    if (config.windowTitle === "Path of Exile 2") {
+      config.windowTitle = "";
+    }
+    config.followGame = true;
+    config.widgets.push({
+      ...defaultConfig().widgets.find((w) => w.wmType === "assistant-eval")!,
+      wmId: Math.max(0, ...config.widgets.map((_) => _.wmId)) + 1,
+    });
+
+    config.configVersion = 36;
+  }
   /* eslint-enable */
 
   return config as unknown as Config;
@@ -746,6 +764,13 @@ function getConfigForHost(): HostConfig {
     actions.push({
       shortcut: itemCheck.hotkey,
       action: { type: "copy-item", target: "item-check", focusOverlay: true },
+    });
+  }
+  const assistantEval = AppConfig("assistant-eval") as AssistantEvalWidget;
+  if (assistantEval.hotkey) {
+    actions.push({
+      shortcut: assistantEval.hotkey,
+      action: { type: "copy-item", target: "assistant-eval", focusOverlay: true },
     });
   }
   const library = AppConfig("library") as LibraryWidget;

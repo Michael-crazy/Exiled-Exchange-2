@@ -95,7 +95,10 @@ export type IpcEvent =
   | IpcConfigChanged
   | IpcUserAction
   | IpcWriteToFile
-  | IpcReparseLog;
+  | IpcReparseLog
+  | IpcGameDetected
+  | IpcAssistantRequest
+  | IpcAssistantResponse;
 
 export type IpcEventPayload<
   Name extends IpcEvent["name"],
@@ -209,6 +212,47 @@ type IpcGameLog = Event<
 >;
 
 type IpcReparseLog = Event<"CLIENT->MAIN::re-parse-log">;
+
+// The game client currently running, detected from its process.
+export interface DetectedGame {
+  realm: "pc-ggg" | "pc-tencent";
+  process: string;
+  pid: number;
+  exePath: string | null;
+  windowTitle: string;
+  clientLog: string | null;
+  gameConfig: string;
+  // Client language: EE2 language code, or "cmn-Hans" for Tencent.
+  // null when the international config could not be read.
+  language: string | null;
+}
+
+type IpcGameDetected = Event<
+  "MAIN->CLIENT::game-detected",
+  {
+    game: DetectedGame | null;
+  }
+>;
+
+// Request to the Python backend, see sources/assistant-shell.md
+// in PoE2-Build-Assistant.
+type IpcAssistantRequest = Event<
+  "CLIENT->MAIN::assistant-request",
+  {
+    id: string;
+    method: string;
+    params: unknown;
+  }
+>;
+
+type IpcAssistantResponse = Event<
+  "MAIN->CLIENT::assistant-response",
+  {
+    id: string;
+    result?: unknown;
+    error?: { code: string; message: string };
+  }
+>;
 
 type IpcUpdaterState = Event<"MAIN->CLIENT::updater-state", UpdateInfo>;
 

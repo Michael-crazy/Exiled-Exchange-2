@@ -7,6 +7,7 @@
   "league": "League",
   "realm": "Realm",
   "realm_intl": "International",
+  "realm_tencent": "Tencent",
   "app": {
     "leagues_loading": "Loading leagues…",
     "leagues_failed": "Failed to load leagues",
@@ -351,6 +352,10 @@
     "added_augments": "Added Augment Cost:"
   },
   "settings": {
+    "follow_game": "Follow the running game",
+    "follow_game_hint": "Language and realm switch to the game client that is running.",
+    "auto_detect": "Detected from the running game",
+    "assistant_eval": "Evaluate item (PoE2 assistant)",
     "title": "Settings - Exiled Exchange 2",
     "language": "Language",
     "private_league": "or Private League",

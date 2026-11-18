@@ -7,6 +7,7 @@
   "league": "聯盟",
   "realm": "區域",
   "realm_intl": "國際",
+  "realm_tencent": "騰訊",
   "app": {
     "leagues_loading": "正在加載聯盟…",
     "leagues_failed": "加載聯盟失敗",
@@ -334,6 +335,10 @@
     "gem_sockets": "插槽"
   },
   "settings": {
+    "follow_game": "跟隨目前執行的遊戲",
+    "follow_game_hint": "語言和區域自動切換到正在執行的遊戲用戶端。",
+    "auto_detect": "依目前執行的遊戲自動識別",
+    "assistant_eval": "裝備評估（PoE2 助手）",
     "title": "設置 - 流亡交易所 2",
     "language": "語言",
     "private_league": "或私密聯盟",

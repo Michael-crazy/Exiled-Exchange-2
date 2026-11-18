@@ -16,6 +16,9 @@ import { GameLogWatcher } from "./host-files/GameLogWatcher";
 import { HttpProxy } from "./proxy";
 import { installExtension, VUEJS_DEVTOOLS } from "electron-devtools-installer";
 import { FileWriter } from "./host-files/FileWriter";
+import { GameDetector } from "./host-files/GameDetector";
+import { AssistantBackend } from "./backend/AssistantBackend";
+import type { HostConfig } from "../../ipc/types";
 
 if (!app.requestSingleInstanceLock()) {
   app.exit();
@@ -72,6 +75,8 @@ let tray: AppTray;
     const _httpProxy = new HttpProxy(server, logger);
     const fileWriter = new FileWriter(eventPipe, logger);
     const gameLogWatcher = new GameLogWatcher(eventPipe, logger, fileWriter);
+    const gameDetector = new GameDetector(logger);
+    const backend = new AssistantBackend(eventPipe, logger);
 
     if (process.env.VITE_DEV_SERVER_URL) {
       try {
@@ -101,14 +106,47 @@ let tray: AppTray;
           gameConfig,
           eventPipe,
         );
+        // Settings entered by the user win; empty ones follow the game
+        // that is currently running.
+        let hostCfg: HostConfig | null = null;
+        const applyGameSettings = () => {
+          if (!hostCfg) return;
+          const game = gameDetector.current;
+          const title = hostCfg.windowTitle || game?.windowTitle || null;
+          if (
+            title &&
+            poeWindow.attachedTitle &&
+            title !== poeWindow.attachedTitle &&
+            !hostCfg.windowTitle
+          ) {
+            // The other realm started. The native window hook cannot switch
+            // titles, so restart with the same privileges.
+            logger.write(`info [GameDetector] switching to "${title}"`);
+            app.relaunch();
+            app.quit();
+            return;
+          }
+          overlay.updateOpts(
+            hostCfg.overlayKey,
+            title,
+            hostCfg.hideOverlayOnBlur,
+          );
+          gameLogWatcher.restart(
+            hostCfg.clientLog || game?.clientLog || "",
+            hostCfg.readClientLog,
+          );
+          gameConfig.readConfig(hostCfg.gameConfig || game?.gameConfig || "");
+          eventPipe.sendEventTo("broadcast", {
+            name: "MAIN->CLIENT::game-detected",
+            payload: { game },
+          });
+        };
+        gameDetector.on("change", applyGameSettings);
         eventPipe.onEventAnyClient(
           "CLIENT->MAIN::update-host-config",
           (cfg) => {
-            overlay.updateOpts(
-              cfg.overlayKey,
-              cfg.windowTitle,
-              cfg.hideOverlayOnBlur,
-            );
+            hostCfg = cfg;
+            applyGameSettings();
             shortcuts.updateActions(
               cfg.shortcuts,
               cfg.stashScroll,
@@ -117,13 +155,14 @@ let tray: AppTray;
               cfg.language,
             );
             shortcuts.updateDelay(cfg.initialDelay);
-            gameLogWatcher.restart(cfg.clientLog ?? "", cfg.readClientLog);
-            gameConfig.readConfig(cfg.gameConfig ?? "");
             appUpdater.checkAtStartup();
             tray.overlayKey = cfg.overlayKey;
             fileWriter.restart(cfg.libraryAlpha, cfg.libraryOutputPath);
           },
         );
+        gameDetector.start();
+        const backendError = backend.start();
+        if (backendError) logger.write(`warn [Backend] ${backendError}`);
         uIOhook.start();
         console.log("uIOhook started");
         const port = await startServer(appUpdater, logger);

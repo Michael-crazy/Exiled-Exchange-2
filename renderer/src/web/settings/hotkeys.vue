@@ -37,6 +37,7 @@ import {
 } from "./utils";
 import { PriceCheckWidget, DelveGridWidget } from "@/web/overlay/interfaces";
 import { ItemCheckWidget } from "../item-check/widget.js";
+import type { AssistantEvalWidget } from "../assistant/widget.js";
 
 import UiRadio from "@/web/ui/UiRadio.vue";
 import HotkeysGeneric, { HotkeySchema } from "../settings/HotkeysGeneric.vue";
@@ -50,6 +51,10 @@ const hotkeys = computed<HotkeySchema[]>(() => {
   )!;
   const itemCheckWidget = findWidget<ItemCheckWidget>(
     "item-check",
+    props.config,
+  )!;
+  const assistantEvalWidget = findWidget<AssistantEvalWidget>(
+    "assistant-eval",
     props.config,
   )!;
   const delveGridWidget = findWidget<DelveGridWidget>(
@@ -72,6 +77,10 @@ const hotkeys = computed<HotkeySchema[]>(() => {
           config: _configModelValue(priceCheckWidget, "hotkeyLocked"),
         },
       ],
+    },
+    {
+      translationKey: "settings.assistant_eval",
+      config: _configModelValue(assistantEvalWidget, "hotkey"),
     },
     {
       translationKey: "settings.overlay",

@@ -1,5 +1,6 @@
 import path from "path";
 import { BrowserWindow, dialog, shell, Menu } from "electron";
+import { relaunchAsAdmin } from "./elevation";
 import {
   OverlayController,
   OVERLAY_WINDOW_OPTS,
@@ -123,11 +124,13 @@ export class OverlayWindow {
 
   updateOpts(
     overlayKey: string,
-    windowTitle: string,
+    windowTitle: string | null,
     hideOverlayOnBlur: boolean,
   ) {
     this.overlayKey = overlayKey;
-    this.poeWindow.attach(this.window, windowTitle);
+    if (windowTitle) {
+      this.poeWindow.attach(this.window, windowTitle);
+    }
     this.hideOverlayOnBlur = hideOverlayOnBlur;
   }
 
@@ -172,14 +175,20 @@ export class OverlayWindow {
       this.logger.write(
         "error [Overlay] PoE2 is running with administrator rights",
       );
-
-      dialog.showErrorBox(
-        "PoE2 window - No access",
-        // ----------------------
-        "Path of Exile 2 is running with administrator rights.\n" +
-          "\n" +
-          "You need to restart Exiled Exchange 2 with administrator rights.",
-      );
+      // The game window is attached but input cannot reach it (UIPI).
+      // Elevation always needs the user's UAC confirmation, so ask first.
+      const choice = dialog.showMessageBoxSync({
+        type: "warning",
+        title: "PoE2 助手",
+        message: "游戏正以管理员身份运行，助手需要同样以管理员身份运行才能读取装备和显示浮层。",
+        buttons: ["以管理员身份重启助手", "暂不"],
+        defaultId: 0,
+        cancelId: 1,
+        noLink: true,
+      });
+      if (choice === 0) {
+        relaunchAsAdmin(this.logger);
+      }
     } else {
       this.server.sendEventTo("broadcast", {
         name: "MAIN->OVERLAY::overlay-attached",

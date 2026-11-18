@@ -7,10 +7,14 @@ export interface GameWindow {
 }
 export class GameWindow extends EventEmitter {
   private _isActive = false;
-  private _isTracking = false;
+  private _attachedTitle: string | null = null;
 
   get bounds() {
     return OverlayController.targetBounds;
+  }
+
+  get attachedTitle() {
+    return this._attachedTitle;
   }
 
   get isActive() {
@@ -31,7 +35,8 @@ export class GameWindow extends EventEmitter {
   }
 
   attach(window: BrowserWindow | undefined, title: string) {
-    if (!this._isTracking) {
+    // The native hook can only be started once per process.
+    if (this._attachedTitle == null) {
       OverlayController.events.on("focus", () => {
         this.isActive = true;
       });
@@ -41,7 +46,7 @@ export class GameWindow extends EventEmitter {
       OverlayController.attachByTitle(window, title, {
         hasTitleBarOnMac: true,
       });
-      this._isTracking = true;
+      this._attachedTitle = title;
     }
   }
 

@@ -1,5 +1,11 @@
 <template>
   <div class="max-w-md p-2">
+    <ui-checkbox class="mb-1" v-model="followGame">{{
+      t(":follow_game")
+    }}</ui-checkbox>
+    <div class="italic text-gray-500 mb-4">
+      {{ t(":follow_game_hint") }}
+    </div>
     <div class="mb-4">
       <div class="flex-1 mb-1">{{ t(":language") }}</div>
       <select v-model="language" class="p-1 rounded bg-gray-700 w-24">
@@ -30,6 +36,9 @@
         <ui-radio v-model="realm" value="pc-garena">{{
           t("Hotcool")
         }}</ui-radio>
+        <ui-radio v-model="realm" value="pc-tencent">{{
+          t("realm_tencent")
+        }}</ui-radio>
       </div>
     </div>
     <div class="mb-4">
@@ -50,7 +59,7 @@
       <input
         v-model.trim="clientLog"
         class="rounded bg-gray-900 px-1 block w-full font-sans"
-        placeholder="...?/Grinding Gear Games/Path of Exile 2/logs/Client.txt"
+        :placeholder="t(':auto_detect')"
       />
     </div>
     <div class="mb-4">
@@ -58,7 +67,7 @@
       <input
         v-model.trim="gameConfig"
         class="rounded bg-gray-900 px-1 block w-full font-sans"
-        placeholder="...?/My Games/Path of Exile 2/poe2_production_Config.ini"
+        :placeholder="t(':auto_detect')"
       />
     </div>
     <hr class="mb-4 mx-8 border-gray-700" />
@@ -101,6 +110,7 @@
       </div>
       <input
         v-model="windowTitle"
+        :placeholder="t(':auto_detect')"
         class="rounded bg-gray-900 px-1 block w-full mb-1 font-poe"
       />
     </div>
@@ -212,6 +222,7 @@ export default defineComponent({
       }),
 
       realm: configModelValue(() => props.config, "realm"),
+      followGame: configModelValue(() => props.config, "followGame"),
       restoreClipboard: configModelValue(
         () => props.config,
         "restoreClipboard",
