@@ -234,7 +234,19 @@ export class Shortcuts {
                   this.overlay.assertOverlayActive();
                 }
               })
-              .catch(() => {});
+              .catch(() => {
+                // The game did not put item text on the clipboard.
+                this.logger.write(
+                  `warn [Shortcuts] no item text for "${action.target}"`,
+                );
+                this.server.sendEventTo("last-active", {
+                  name: "MAIN->CLIENT::item-text-failed",
+                  payload: { target: action.target, position: pressPosition },
+                });
+                if (action.focusOverlay && this.overlay.wasUsedRecently) {
+                  this.overlay.assertOverlayActive();
+                }
+              });
 
             pressKeysToCopyItemText(
               entry.keepModKeys

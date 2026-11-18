@@ -59,7 +59,11 @@ export class AssistantBackend {
     this.server.onEventAnyClient(
       "CLIENT->MAIN::assistant-request",
       async ({ id, method, params }) => {
+        const started = Date.now();
         const reply = await this.request(method, params);
+        this.logger.write(
+          `info [Backend] ${method} ${"error" in reply ? reply.error.code : "ok"} ${Date.now() - started} ms`,
+        );
         this.server.sendEventTo("broadcast", {
           name: "MAIN->CLIENT::assistant-response",
           payload: { id, ...reply },

@@ -91,6 +91,7 @@ export type IpcEvent =
   | IpcHostConfig
   | IpcWidgetAction
   | IpcItemText
+  | IpcItemTextFailed
   | IpcOcrText
   | IpcConfigChanged
   | IpcUserAction
@@ -191,6 +192,14 @@ type IpcItemText = Event<
     item?: unknown;
     position: { x: number; y: number };
     focusOverlay: boolean;
+  }
+>;
+
+type IpcItemTextFailed = Event<
+  "MAIN->CLIENT::item-text-failed",
+  {
+    target: string;
+    position: { x: number; y: number };
   }
 >;
 

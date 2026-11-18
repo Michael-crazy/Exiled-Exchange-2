@@ -66,6 +66,15 @@ const state = ref<State>({ kind: "waiting" });
 const checkPosition = ref({ x: 1, y: 1 });
 let requestId = "";
 let requestSeq = 0;
+let watchdog: ReturnType<typeof setTimeout> | undefined;
+// Longer than the main process' own 30 s backend timeout.
+const WATCHDOG_MS = 40_000;
+
+function finish(next: State) {
+  clearTimeout(watchdog);
+  requestId = "";
+  state.value = next;
+}
 
 const gameLabel = computed(() => {
   const realm = detectedGame.value?.realm ?? AppConfig().realm;
@@ -76,9 +85,19 @@ Host.onEvent("MAIN->CLIENT::item-text", (e) => {
   if (e.target !== "assistant-eval") return;
 
   checkPosition.value = e.position;
-  requestId = `${Date.now()}-${++requestSeq}`;
+  const id = `${Date.now()}-${++requestSeq}`;
+  requestId = id;
   state.value = { kind: "waiting" };
   wm.show(props.config.wmId);
+  clearTimeout(watchdog);
+  watchdog = setTimeout(() => {
+    if (requestId !== id) return;
+    finish({
+      kind: "error",
+      code: "shell-timeout",
+      message: "助手没有收到后端的结果，请稍后重试。",
+    });
+  }, WATCHDOG_MS);
   Host.sendEvent({
     name: "CLIENT->MAIN::assistant-request",
     payload: {
@@ -95,11 +114,36 @@ Host.onEvent("MAIN->CLIENT::item-text", (e) => {
   });
 });
 
+Host.onEvent("MAIN->CLIENT::item-text-failed", (e) => {
+  if (e.target !== "assistant-eval") return;
+
+  checkPosition.value = e.position;
+  finish({
+    kind: "error",
+    code: "no-item-text",
+    message:
+      "没有读到装备文本：游戏没有把装备复制到剪贴板。请把鼠标停在装备上，等提示框出现后再按快捷键。",
+  });
+  wm.show(props.config.wmId);
+});
+
 Host.onEvent("MAIN->CLIENT::assistant-response", (e) => {
-  if (e.id !== requestId) return;
-  state.value = e.error
-    ? { kind: "error", code: e.error.code, message: e.error.message }
-    : { kind: "done", text: JSON.stringify(e.result, null, 2) };
+  if (!requestId || e.id !== requestId) return;
+  if (e.error) {
+    finish({
+      kind: "error",
+      code: e.error.code,
+      message: e.error.message || "后端返回了错误，但没有说明原因。",
+    });
+  } else if (e.result == null) {
+    finish({
+      kind: "error",
+      code: "empty-result",
+      message: "后端没有返回评估结果。",
+    });
+  } else {
+    finish({ kind: "done", text: JSON.stringify(e.result, null, 2) });
+  }
 });
 
 props.config.wmWants = "hide";
