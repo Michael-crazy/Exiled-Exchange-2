@@ -18,9 +18,7 @@ interface BackendLaunch {
   cwd: string;
 }
 
-type Reply =
-  | { result: unknown }
-  | { error: { code: string; message: string } };
+type Reply = { result: unknown } | { error: { code: string; message: string } };
 
 // assistant-backend.json next to the executable, or the file named by
 // POE2_ASSISTANT_BACKEND_CONFIG. Relative paths resolve against the file.
@@ -102,26 +100,26 @@ export class AssistantBackend {
       this.logger.write(`warn [Backend] exited (${code})`);
       this.handleExit(proc, `后端已退出（${code}）`);
     });
-    proc.stdin!.on("error", () => {});
-    proc.stderr!.on("data", (chunk: Buffer) => {
+    proc.stdin.on("error", () => {});
+    proc.stderr.on("data", (chunk: Buffer) => {
       this.logger.write(`info [Backend] ${chunk.toString("utf8").trimEnd()}`);
     });
-    readline.createInterface({ input: proc.stdout! }).on("line", (line) => {
+    readline.createInterface({ input: proc.stdout }).on("line", (line) => {
       this.handleLine(line);
     });
     return null;
   }
 
-  request(method: string, params: unknown): Promise<Reply> {
+  async request(method: string, params: unknown): Promise<Reply> {
     const startError = this.start();
     if (startError) {
-      return Promise.resolve({
+      return await Promise.resolve({
         error: { code: "backend-unavailable", message: startError },
       });
     }
 
     const id = this.nextId++;
-    return new Promise((resolve) => {
+    return await new Promise((resolve) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
         resolve({

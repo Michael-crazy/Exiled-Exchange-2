@@ -770,7 +770,11 @@ function getConfigForHost(): HostConfig {
   if (assistantEval.hotkey) {
     actions.push({
       shortcut: assistantEval.hotkey,
-      action: { type: "copy-item", target: "assistant-eval", focusOverlay: true },
+      action: {
+        type: "copy-item",
+        target: "assistant-eval",
+        focusOverlay: true,
+      },
     });
   }
   const library = AppConfig("library") as LibraryWidget;

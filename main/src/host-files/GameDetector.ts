@@ -29,16 +29,16 @@ const CONFIG_FILE: Record<DetectedGame["realm"], string> = {
 
 // [LANGUAGE] language= in the international game config -> EE2 language.
 const GAME_LANGUAGE: Record<string, string> = {
-  en: "en",
+  "en": "en",
   "zh-TW": "cmn-Hant",
-  ru: "ru",
-  ko: "ko",
-  ja: "ja",
-  de: "de",
-  es: "es",
-  pt: "pt",
+  "ru": "ru",
+  "ko": "ko",
+  "ja": "ja",
+  "de": "de",
+  "es": "es",
+  "pt": "pt",
   "pt-BR": "pt",
-  fr: "fr",
+  "fr": "fr",
 };
 
 // Polls running processes once every 2 seconds from a single long-lived

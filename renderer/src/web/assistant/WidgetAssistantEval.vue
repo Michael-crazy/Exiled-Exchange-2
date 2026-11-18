@@ -9,9 +9,7 @@
       class="bg-gray-800 text-gray-200 rounded p-2 font-sans text-sm"
       style="width: 28rem; max-height: 80vh; overflow: auto"
     >
-      <div class="mb-1 text-gray-400">
-        装备评估 · {{ gameLabel }}
-      </div>
+      <div class="mb-1 text-gray-400">装备评估 · {{ gameLabel }}</div>
       <div v-if="state.kind === 'waiting'">评估中…</div>
       <div v-else-if="state.kind === 'error'" class="text-red-400">
         {{ state.message }}

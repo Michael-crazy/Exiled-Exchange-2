@@ -180,7 +180,8 @@ export class OverlayWindow {
       const choice = dialog.showMessageBoxSync({
         type: "warning",
         title: "PoE2 助手",
-        message: "游戏正以管理员身份运行，助手需要同样以管理员身份运行才能读取装备和显示浮层。",
+        message:
+          "游戏正以管理员身份运行，助手需要同样以管理员身份运行才能读取装备和显示浮层。",
         buttons: ["以管理员身份重启助手", "暂不"],
         defaultId: 0,
         cancelId: 1,
