@@ -10,6 +10,14 @@ const POLL_LIMIT = 500;
 // wrong content (= restored clipboard, potentially containing password).
 const RESTORE_AFTER = 120;
 
+// Why no item text was read: the game left the clipboard untouched
+// (e.g. equipped items cannot be copied), or put something else there.
+export class NoItemTextError extends Error {
+  constructor(public reason: "unchanged" | "not-item") {
+    super(`No item text on clipboard (${reason})`);
+  }
+}
+
 export class HostClipboard {
   private pollPromise?: Promise<string>;
   private elapsed = 0;
@@ -49,6 +57,7 @@ export class HostClipboard {
       clipboard.writeText(`__EE2_FORCE_EMPTY_${Date.now()}`);
     }
 
+    const baseline = clipboard.readText();
     this.pollPromise = new Promise((resolve, reject) => {
       const poll = () => {
         const textAfter = clipboard.readText();
@@ -69,10 +78,11 @@ export class HostClipboard {
             }
             this.pollPromise = undefined;
 
-            if (!isPoeItem(textAfter)) {
-              this.logger.write("warn [ClipboardPoller] No item text found.");
-            }
-            reject(new Error("Reading clipboard timed out"));
+            const reason = textAfter === baseline ? "unchanged" : "not-item";
+            this.logger.write(
+              `warn [ClipboardPoller] No item text found (${reason}).`,
+            );
+            reject(new NoItemTextError(reason));
           }
         }
       };

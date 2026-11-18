@@ -200,6 +200,10 @@ type IpcItemTextFailed = Event<
   {
     target: string;
     position: { x: number; y: number };
+    // unchanged: the game copied nothing (equipped items cannot be copied).
+    // not-item: the clipboard changed to something that is not an item.
+    reason: "unchanged" | "not-item";
+    focusOverlay: boolean;
   }
 >;
 

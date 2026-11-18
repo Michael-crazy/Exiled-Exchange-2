@@ -60,7 +60,11 @@
           :position="checkPosition"
           style="z-index: -1"
         />
-        <template v-if="item?.isErr()">
+        <ui-error-box v-if="noItemMessage" class="m-4">
+          <template #name>无法查价</template>
+          <p>{{ noItemMessage }}</p>
+        </ui-error-box>
+        <template v-else-if="item?.isErr()">
           <ui-error-box class="m-4">
             <template #name>{{ t(item.error.name) }}</template>
             <template #actions
@@ -163,6 +167,7 @@ import {
 } from "../overlay/interfaces";
 import { loadUltraLateItems } from "@/assets/data";
 import ReloadTradeData from "./fallback/ReloadTradeData.vue";
+import { noItemText } from "../assistant/no-item-text";
 
 type ParseError = {
   name: string;
@@ -257,16 +262,18 @@ export default defineComponent({
     const item = ref<null | Result<ParsedItem, ParseError>>(null);
     const advancedCheck = shallowRef(false);
     const checkPosition = shallowRef({ x: 1, y: 1 });
+    const noItemMessage = shallowRef<string | null>(null);
 
-    MainProcess.onEvent("MAIN->CLIENT::item-text", (e) => {
-      if (e.target !== "price-check") return;
-      performance.mark("price-check-event");
-
-      if (Host.isElectron && !e.focusOverlay) {
+    // Close the window when the mouse leaves it (hold-key price check).
+    function trackPriceArea(
+      position: { x: number; y: number },
+      focusOverlay: boolean,
+    ) {
+      if (Host.isElectron && !focusOverlay) {
         // everything in CSS pixels
         const width = 28.75 * AppConfig().fontSize;
         const screenX =
-          e.position.x - window.screenX > window.innerWidth / 2
+          position.x - window.screenX > window.innerWidth / 2
             ? window.screenX +
               window.innerWidth -
               wm.poePanelWidth.value -
@@ -277,7 +284,7 @@ export default defineComponent({
           payload: {
             holdKey: props.config.hotkeyHold,
             closeThreshold: 2.5 * AppConfig().fontSize,
-            from: e.position,
+            from: position,
             area: {
               x: screenX,
               y: window.screenY,
@@ -288,6 +295,24 @@ export default defineComponent({
           },
         });
       }
+    }
+
+    MainProcess.onEvent("MAIN->CLIENT::item-text-failed", (e) => {
+      if (e.target !== "price-check") return;
+      trackPriceArea(e.position, e.focusOverlay);
+      closeBrowser();
+      wm.show(props.config.wmId);
+      checkPosition.value = e.position;
+      item.value = null;
+      noItemMessage.value = noItemText(e.reason).message;
+    });
+
+    MainProcess.onEvent("MAIN->CLIENT::item-text", (e) => {
+      if (e.target !== "price-check") return;
+      performance.mark("price-check-event");
+
+      trackPriceArea(e.position, e.focusOverlay);
+      noItemMessage.value = null;
       closeBrowser();
       wm.show(props.config.wmId);
       checkPosition.value = e.position;
@@ -429,6 +454,7 @@ export default defineComponent({
 
     return {
       t,
+      noItemMessage,
       clickPosition,
       isBrowserShown,
       iframeEl,

@@ -7,7 +7,7 @@ import {
 } from "../../../ipc/KeyToCode";
 import { typeInChat, stashSearch } from "./text-box";
 import { WidgetAreaTracker } from "../windowing/WidgetAreaTracker";
-import { HostClipboard } from "./HostClipboard";
+import { HostClipboard, NoItemTextError } from "./HostClipboard";
 import { OcrWorker } from "../vision/link-main";
 import type { ShortcutAction } from "../../../ipc/types";
 import type { Logger } from "../RemoteLogger";
@@ -234,14 +234,21 @@ export class Shortcuts {
                   this.overlay.assertOverlayActive();
                 }
               })
-              .catch(() => {
+              .catch((err: unknown) => {
                 // The game did not put item text on the clipboard.
+                const reason =
+                  err instanceof NoItemTextError ? err.reason : "not-item";
                 this.logger.write(
-                  `warn [Shortcuts] no item text for "${action.target}"`,
+                  `warn [Shortcuts] no item text for "${action.target}" (${reason})`,
                 );
                 this.server.sendEventTo("last-active", {
                   name: "MAIN->CLIENT::item-text-failed",
-                  payload: { target: action.target, position: pressPosition },
+                  payload: {
+                    target: action.target,
+                    position: pressPosition,
+                    reason,
+                    focusOverlay: Boolean(action.focusOverlay),
+                  },
                 });
                 if (action.focusOverlay && this.overlay.wasUsedRecently) {
                   this.overlay.assertOverlayActive();

@@ -50,6 +50,7 @@ import { AppConfig } from "@/web/Config";
 import { detectedGame } from "@/web/background/GameInfo";
 import type { WidgetManager } from "../overlay/interfaces";
 import Widget from "../overlay/Widget.vue";
+import { noItemText } from "./no-item-text";
 
 const props = defineProps<{
   config: AssistantEvalWidget;
@@ -118,12 +119,7 @@ Host.onEvent("MAIN->CLIENT::item-text-failed", (e) => {
   if (e.target !== "assistant-eval") return;
 
   checkPosition.value = e.position;
-  finish({
-    kind: "error",
-    code: "no-item-text",
-    message:
-      "没有读到装备文本：游戏没有把装备复制到剪贴板。请把鼠标停在装备上，等提示框出现后再按快捷键。",
-  });
+  finish({ kind: "error", ...noItemText(e.reason) });
   wm.show(props.config.wmId);
 });
 
