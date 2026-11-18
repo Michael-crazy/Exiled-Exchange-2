@@ -138,6 +138,7 @@ export const defaultConfigMock = (overrides: Partial<Config> = {}) => {
     language: "en", // Default language
     preferredTradeSite: "default",
     realm: "pc-ggg",
+    followGame: false,
     widgets: [
       /* eslint-disable @typescript-eslint/no-explicit-any */
       {

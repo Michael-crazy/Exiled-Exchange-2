@@ -113,9 +113,7 @@ export class AssistantBackend {
   async request(method: string, params: unknown): Promise<Reply> {
     const startError = this.start();
     if (startError) {
-      return await Promise.resolve({
-        error: { code: "backend-unavailable", message: startError },
-      });
+      return { error: { code: "backend-unavailable", message: startError } };
     }
 
     const id = this.nextId++;
