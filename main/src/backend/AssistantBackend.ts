@@ -102,7 +102,10 @@ export class AssistantBackend {
     });
     proc.on("exit", (code) => {
       this.logger.write(`warn [Backend] exited (${code})`);
-      this.handleExit(proc, `后端已退出（${code}）`);
+      this.handleExit(
+        proc,
+        `后端意外退出（${code}），再按一次快捷键会重新启动它。`,
+      );
     });
     proc.stdin.on("error", () => {});
     proc.stderr.on("data", (chunk: Buffer) => {
@@ -122,14 +125,23 @@ export class AssistantBackend {
 
     const id = this.nextId++;
     return await new Promise((resolve) => {
+      const proc = this.proc!;
       const timer = setTimeout(() => {
         this.pending.delete(id);
         resolve({
-          error: { code: "backend-timeout", message: "后端响应超时" },
+          error: {
+            code: "backend-timeout",
+            message: "后端 30 秒内没有响应，已重启后端，请再按一次快捷键。",
+          },
         });
+        // A stuck backend would make every later request time out too.
+        this.logger.write("warn [Backend] timed out, restarting");
+        this.handleExit(proc, "后端响应超时，已重启");
+        proc.kill();
+        this.start();
       }, REQUEST_TIMEOUT_MS);
       this.pending.set(id, { resolve, timer });
-      this.proc!.stdin!.write(
+      proc.stdin!.write(
         JSON.stringify({ protocol: PROTOCOL, id, method, params }) + "\n",
       );
     });
