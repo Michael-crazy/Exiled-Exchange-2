@@ -37,7 +37,10 @@ function readLaunchConfig(): { launch: BackendLaunch | null; file: string } {
   return {
     file,
     launch: {
-      command: raw.command,
+      // A bare name is looked up on PATH; a path is relative to this file.
+      command: /[\\/]/.test(raw.command)
+        ? path.resolve(base, raw.command)
+        : raw.command,
       args: raw.args ?? [],
       cwd: path.resolve(base, raw.cwd ?? "."),
     },

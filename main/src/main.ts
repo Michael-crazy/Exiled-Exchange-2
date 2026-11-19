@@ -18,6 +18,7 @@ import { installExtension, VUEJS_DEVTOOLS } from "electron-devtools-installer";
 import { FileWriter } from "./host-files/FileWriter";
 import { GameDetector } from "./host-files/GameDetector";
 import { AssistantBackend } from "./backend/AssistantBackend";
+import { followPathOfBuilding } from "./PathOfBuildingParent";
 import type { HostConfig } from "../../ipc/types";
 
 if (!app.requestSingleInstanceLock()) {
@@ -77,6 +78,7 @@ let tray: AppTray;
     const gameLogWatcher = new GameLogWatcher(eventPipe, logger, fileWriter);
     const gameDetector = new GameDetector(logger);
     const backend = new AssistantBackend(eventPipe, logger);
+    followPathOfBuilding(logger);
 
     if (process.env.VITE_DEV_SERVER_URL) {
       try {
