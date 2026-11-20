@@ -512,19 +512,22 @@
     "exp_inspire": "根据： ",
     "exp_astrict": "*当角色等级高于 95 级、怪物等级高于 70 级，或是在某些情况下经验值倍率并非 100% 时，显示的经验值获取比例可能尚未经过完整测试，数值仅供参考，未必完全精确。"
   },
+  "Search": "搜索",
   "Retry": "重试",
   "Browser": "在浏览器打开",
   "Unable to determine fractured stat": "无法确定破裂词缀",
   "Reload fallback data": "重新加载备用数据",
   "Instant or Online": "即时购买或在线",
   "Rate limiting": "市集限流中",
-  "item_editor.save_type": "保存给：",
-  "item_editor.caster_weapon": "法系武器",
-  "item_editor.marital_weapon": "近战武器",
-  "item_editor.sceptre": "权杖",
-  "item_editor.armour": "护甲",
-  "item_editor.all": "默认",
-  "item_editor.save": "保存",
-  "item_editor.confirm": "确认",
-  "item_editor.clear": "清除已保存"
+  "item_editor": {
+    "save_type": "保存给：",
+    "caster_weapon": "法系武器",
+    "marital_weapon": "近战武器",
+    "sceptre": "权杖",
+    "armour": "护甲",
+    "all": "默认",
+    "save": "保存",
+    "confirm": "确认",
+    "clear": "清除已保存"
+  }
 }

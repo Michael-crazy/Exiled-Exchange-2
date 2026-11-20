@@ -1,4 +1,4 @@
-import { BrowserWindow, session } from "electron";
+import { app, BrowserWindow, session } from "electron";
 import type { ServerEvents } from "./server";
 import type { Logger } from "./RemoteLogger";
 
@@ -25,6 +25,10 @@ export class TencentLogin {
     private server: ServerEvents,
     private logger: Logger,
   ) {
+    // Closing the login or the background window must not end the app:
+    // without a listener Electron quits once no window is left (the overlay
+    // window is the only other one, and is absent with --no-overlay).
+    app.on("window-all-closed", () => {});
     this.server.onEventAnyClient(
       "CLIENT->MAIN::tencent-login",
       async ({ action }) => {

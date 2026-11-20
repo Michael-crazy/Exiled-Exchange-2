@@ -512,19 +512,22 @@
     "exp_inspire": "根據： ",
     "exp_astrict": "*當角色等級高於 95 級、怪物等級高於 70 級，或是在某些情況下經驗值倍率並非 100% 時，顯示的經驗值獲取比例可能尚未經過完整測試，數值僅供參考，未必完全精確。"
   },
+  "Search": "搜索",
   "Retry": "重試",
   "Browser": "在瀏覽器打開",
   "Unable to determine fractured stat": "無法確定破裂詞綴",
   "Reload fallback data": "重新加載備用數據",
   "Instant or Online": "即時購買或在線",
   "Rate limiting": "市集限流中",
-  "item_editor.save_type": "保存給：",
-  "item_editor.caster_weapon": "法系武器",
-  "item_editor.marital_weapon": "近戰武器",
-  "item_editor.sceptre": "權杖",
-  "item_editor.armour": "護甲",
-  "item_editor.all": "默認",
-  "item_editor.save": "保存",
-  "item_editor.confirm": "確認",
-  "item_editor.clear": "清除已保存"
+  "item_editor": {
+    "save_type": "保存給：",
+    "caster_weapon": "法系武器",
+    "marital_weapon": "近戰武器",
+    "sceptre": "權杖",
+    "armour": "護甲",
+    "all": "默認",
+    "save": "保存",
+    "confirm": "確認",
+    "clear": "清除已保存"
+  }
 }
