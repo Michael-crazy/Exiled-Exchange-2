@@ -108,7 +108,9 @@ export type IpcEvent =
   | IpcReparseLog
   | IpcGameDetected
   | IpcAssistantRequest
-  | IpcAssistantResponse;
+  | IpcAssistantResponse
+  | IpcPobSettings
+  | IpcPobSettingsApplied;
 
 export type IpcEventPayload<
   Name extends IpcEvent["name"],
@@ -169,6 +171,23 @@ type IpcSaveConfig = Event<
   {
     contents: string;
     isTemporary: boolean;
+  }
+>;
+
+// PoE2 assistant: settings changed in Path of Building's Options window.
+type IpcPobSettings = Event<
+  "MAIN->CLIENT::pob-settings",
+  {
+    seq: number;
+    set: Record<string, unknown>;
+  }
+>;
+
+type IpcPobSettingsApplied = Event<
+  "CLIENT->MAIN::pob-settings-applied",
+  {
+    seq: number;
+    rejected: Record<string, string>;
   }
 >;
 

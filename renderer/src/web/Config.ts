@@ -9,6 +9,7 @@ import type { ItemSearchWidget } from "./item-search/widget";
 import { registry as widgetRegistry } from "./overlay/widget-registry.js";
 import { LibraryWidget } from "./library/widget";
 import type { AssistantEvalWidget } from "./assistant/widget";
+import { applyPobSettings } from "./pob-settings";
 
 const _config = shallowRef<Config | null>(null);
 let _lastSavedConfig: Config | null = null;
@@ -61,6 +62,22 @@ export async function initConfig() {
   Host.onEvent("MAIN->CLIENT::config-changed", (e) => {
     _lastSavedConfig = JSON.parse(e.contents); // should be a deep copy
     updateConfig(JSON.parse(e.contents));
+  });
+  Host.onEvent("MAIN->CLIENT::pob-settings", (e) => {
+    const config = AppConfig();
+    const rejected = applyPobSettings(config, e.set);
+    // As when the config changes elsewhere: close the settings window, whose
+    // copy of the config is now stale (an open one also blocks saving).
+    for (const w of config.widgets) {
+      if (w.wmZorder === "exclusive" && w.wmWants === "show")
+        w.wmWants = "hide";
+    }
+    saveConfig();
+    pushHostConfig();
+    Host.sendEvent({
+      name: "CLIENT->MAIN::pob-settings-applied",
+      payload: { seq: e.seq, rejected },
+    });
   });
 
   const contents = await Host.getConfig();

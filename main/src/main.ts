@@ -19,6 +19,7 @@ import { FileWriter } from "./host-files/FileWriter";
 import { GameDetector } from "./host-files/GameDetector";
 import { AssistantBackend } from "./backend/AssistantBackend";
 import { followPathOfBuilding } from "./PathOfBuildingParent";
+import { PobSettingsBridge } from "./host-files/PobSettingsBridge";
 import type { HostConfig } from "../../ipc/types";
 
 if (!app.requestSingleInstanceLock()) {
@@ -79,6 +80,8 @@ let tray: AppTray;
     const gameDetector = new GameDetector(logger);
     const backend = new AssistantBackend(eventPipe, logger);
     followPathOfBuilding(logger);
+    // eslint-disable-next-line no-new
+    new PobSettingsBridge(eventPipe, logger);
 
     if (process.env.VITE_DEV_SERVER_URL) {
       try {
