@@ -49,7 +49,7 @@ export class TencentLogin {
     );
   }
 
-  private open() {
+  open() {
     if (this.window) {
       this.window.show();
       this.window.focus();

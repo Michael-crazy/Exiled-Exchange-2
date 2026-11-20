@@ -19,6 +19,7 @@ import { FileWriter } from "./host-files/FileWriter";
 import { GameDetector } from "./host-files/GameDetector";
 import { AssistantBackend } from "./backend/AssistantBackend";
 import { TencentLogin } from "./TencentLogin";
+import { PobTrade } from "./PobTrade";
 import { followPathOfBuilding } from "./PathOfBuildingParent";
 import { PobSettingsBridge } from "./host-files/PobSettingsBridge";
 import type { HostConfig } from "../../ipc/types";
@@ -81,10 +82,10 @@ let tray: AppTray;
     const gameDetector = new GameDetector(logger);
     const backend = new AssistantBackend(eventPipe, logger);
     followPathOfBuilding(logger);
+    const pobSettings = new PobSettingsBridge(eventPipe, logger);
+    const tencentLogin = new TencentLogin(eventPipe, logger);
     // eslint-disable-next-line no-new
-    new PobSettingsBridge(eventPipe, logger);
-    // eslint-disable-next-line no-new
-    new TencentLogin(eventPipe, logger);
+    new PobTrade(server, backend, tencentLogin, logger);
 
     if (process.env.VITE_DEV_SERVER_URL) {
       try {
@@ -179,6 +180,7 @@ let tray: AppTray;
         logger.write(`info ${os.type()} ${os.release} / v${app.getVersion()}`);
         overlay.loadAppPage(port);
         tray.serverPort = port;
+        pobSettings.serverPort = port;
       },
       // fixes(linux): window is black instead of transparent
       process.platform === "linux" ? 1000 : 0,

@@ -23,6 +23,8 @@ export class PobSettingsBridge {
   private requestPath = path.join(this.dir, "pob-settings-request.json");
   private statusPath = path.join(this.dir, "assistant-status.json");
   private overlayReady = false;
+  // Local server port for PoB's Trader on the Tencent site (M04).
+  serverPort: number | null = null;
   private logShortcuts = false;
   private applied: { seq: number; rejected: Record<string, string> } | null =
     null;
@@ -106,6 +108,7 @@ export class PobSettingsBridge {
       time: Date.now() / 1000,
       version: app.getVersion(),
       applied: this.applied,
+      port: this.serverPort,
     };
     try {
       fs.mkdirSync(this.dir, { recursive: true });
