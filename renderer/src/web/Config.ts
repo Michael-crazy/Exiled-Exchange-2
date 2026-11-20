@@ -190,7 +190,7 @@ export interface Config {
 }
 
 export const defaultConfig = (): Config => ({
-  configVersion: 38,
+  configVersion: 39,
   overlayKey: "Shift + Space",
   overlayBackground: "rgba(129, 139, 149, 0.15)",
   overlayBackgroundClose: true,
@@ -756,6 +756,21 @@ function upgradeConfig(_config: Config): Config {
     }
 
     config.configVersion = 38;
+  }
+
+  if (config.configVersion < 39) {
+    // PoE2 assistant: value for money in the evaluation overlay (M08b)
+    const assistantEval = config.widgets.find(
+      (w) => w.wmType === "assistant-eval",
+    ) as AssistantEvalWidget | undefined;
+    if (assistantEval) {
+      assistantEval.valueCurrency ??= "divine";
+      assistantEval.tencentExaltedPerDivine ??= 0;
+      assistantEval.tencentChaosPerDivine ??= 0;
+      assistantEval.tencentDivinePerMirror ??= 0;
+    }
+
+    config.configVersion = 39;
   }
   /* eslint-enable */
 

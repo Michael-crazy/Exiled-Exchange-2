@@ -81,6 +81,10 @@ describe("config upgrade", () => {
       clipboardHotkey: "Ctrl + Shift + V",
       watchClipboard: true,
       addToPobHotkey: "Ctrl + Shift + A",
+      valueCurrency: "divine",
+      tencentExaltedPerDivine: 0,
+      tencentChaosPerDivine: 0,
+      tencentDivinePerMirror: 0,
     });
     vi.unstubAllGlobals();
   });

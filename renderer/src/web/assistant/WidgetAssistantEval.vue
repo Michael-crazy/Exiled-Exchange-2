@@ -33,7 +33,28 @@
           <p>{{ state.message }}</p>
           <p class="text-gray-500 text-xs">{{ state.code }}</p>
         </ui-error-box>
-        <EvalResultView v-else :result="state.result" />
+        <template v-else>
+          <EvalResultView
+            :entry="state.entry"
+            :value="valueOf(state.entry)"
+            :base="base"
+            :realm="realm"
+            :missing-rate="missingRate(state.entry)"
+            @update:slot="state.entry.slot = $event"
+            @update:amount-text="state.entry.amountText = $event"
+            @update:currency="setCurrency(state.entry, $event)"
+          />
+          <CompareList
+            v-if="entries.length > 1"
+            class="mt-3"
+            :entries="entries"
+            :current="state.entry"
+            :base="base"
+            :value-of="valueOf"
+            @select="show"
+            @clear="clearOthers"
+          />
+        </template>
       </div>
     </div>
   </div>
@@ -59,6 +80,10 @@ export default {
         clipboardHotkey: "Ctrl + Shift + V",
         watchClipboard: true,
         addToPobHotkey: "Ctrl + Shift + A",
+        valueCurrency: "divine",
+        tencentExaltedPerDivine: 0,
+        tencentChaosPerDivine: 0,
+        tencentDivinePerMirror: 0,
       };
     },
   } satisfies WidgetSpec,
@@ -75,8 +100,22 @@ import type { WidgetManager } from "../overlay/interfaces";
 import AppTitleBar from "@/web/ui/AppTitlebar.vue";
 import UiErrorBox from "@/web/ui/UiErrorBox.vue";
 import EvalResultView from "./EvalResult.vue";
+import CompareList from "./CompareList.vue";
 import type { EvalResult } from "./eval-result";
 import { noItemText } from "./no-item-text";
+import { usePoeninja } from "@/web/background/Prices";
+import { TRADE_TAG_TO_REF } from "@/assets/data";
+import {
+  type DivineRates,
+  type Entry,
+  BASE_CURRENCIES,
+  DEFAULT_BASE,
+  amountText,
+  currencyById,
+  currencyName,
+  entryValue,
+  tencentRates,
+} from "./price-value";
 
 const props = defineProps<{
   config: AssistantEvalWidget;
@@ -86,7 +125,7 @@ const wm = inject<WidgetManager>("wm")!;
 
 type State =
   | { kind: "waiting" }
-  | { kind: "done"; result: EvalResult }
+  | { kind: "done"; entry: Entry }
   | { kind: "error"; code: string; message: string }
   // U06: a short notice for the add-to-PoB hotkey; it hides by itself.
   | { kind: "notice"; tone: "pending" | "ok" | "error"; message: string };
@@ -95,6 +134,8 @@ const state = ref<State>({ kind: "waiting" });
 const checkPosition = ref({ x: 1, y: 1 });
 let requestId = "";
 let requestSeq = 0;
+// Item text of the pending evaluation (key of its comparison entry).
+let requestText = "";
 let watchdog: ReturnType<typeof setTimeout> | undefined;
 // Longer than the main process' own 30 s backend timeout.
 const WATCHDOG_MS = 40_000;
@@ -147,10 +188,112 @@ function addToPob(text: string) {
   });
 }
 
-const gameLabel = computed(() => {
-  const realm = detectedGame.value?.realm ?? AppConfig().realm;
-  return realm === "pc-tencent" ? "腾讯服" : "国际服";
+const realm = computed(() => detectedGame.value?.realm ?? AppConfig().realm);
+const gameLabel = computed(() =>
+  realm.value === "pc-tencent" ? "腾讯服" : "国际服",
+);
+
+// ---- M08b: value for money and the comparison list ----
+
+// Recently evaluated items, newest first; the shown one is state.entry.
+const entries = ref<Entry[]>([]);
+const MAX_ENTRIES = 6;
+
+const base = computed(() =>
+  BASE_CURRENCIES.includes(props.config.valueCurrency)
+    ? props.config.valueCurrency
+    : DEFAULT_BASE,
+);
+
+const ninja = usePoeninja();
+
+// Value of one unit in Divine Orbs.
+const rates = computed<DivineRates>(() => {
+  if (realm.value === "pc-tencent") return tencentRates(props.config);
+  // poe.ninja's database is not reactive; its exchange rate changes on load.
+  if (ninja.xchgRate.value === undefined)
+    return (id) => (id === "divine" ? 1 : undefined);
+  return (id) => {
+    if (id === "divine") return 1;
+    const name = TRADE_TAG_TO_REF.get(id) ?? currencyById(id)?.en;
+    if (!name) return undefined;
+    return ninja.findPriceByQuery({ ns: "ITEM", name })?.primaryValue;
+  };
 });
+
+function valueOf(entry: Entry) {
+  return entryValue(entry, base.value, rates.value);
+}
+
+function missingRate(entry: Entry): string {
+  const v = valueOf(entry);
+  if (!v.inBase || v.inBase.ok) return "";
+  const name = currencyName(v.inBase.missing);
+  if (realm.value !== "pc-tencent") {
+    return ninja.xchgRate.value === undefined
+      ? "正在获取 poe.ninja 汇率…"
+      : `poe.ninja 没有${name}的价格`;
+  }
+  return ["exalted", "chaos", "mirror"].includes(v.inBase.missing)
+    ? `未填写${name}的汇率：请在 PoB 选项“游戏内助手”里填写`
+    : `腾讯服暂时只能换算崇高石、神圣石、混沌石和卡兰德的魔镜`;
+}
+
+const LAST_CURRENCY_KEY = "poe2-assistant.price-currency";
+function lastCurrency(): string {
+  try {
+    const id = localStorage.getItem(LAST_CURRENCY_KEY);
+    if (id && currencyById(id)) return id;
+  } catch {
+    // storage unavailable: use the default
+  }
+  return base.value;
+}
+
+function setCurrency(entry: Entry, id: string) {
+  entry.currency = id;
+  try {
+    localStorage.setItem(LAST_CURRENCY_KEY, id);
+  } catch {
+    // not remembered
+  }
+}
+
+// Adds (or refreshes) the evaluated item and shows it.
+function addEntry(key: string, result: EvalResult) {
+  const old = entries.value.find((e) => e.key === key);
+  const note = result.item.price;
+  const entry: Entry = {
+    key,
+    realm: realm.value,
+    result,
+    slot: result.default_slot,
+    fromNote: note != null,
+    amountText: note ? amountText(note.amount) : (old?.amountText ?? ""),
+    currency: note ? note.currency : (old?.currency ?? lastCurrency()),
+  };
+  // Items evaluated against another build or server are not comparable.
+  const path = result.build?.path ?? null;
+  entries.value = [
+    entry,
+    ...entries.value.filter(
+      (e) =>
+        e.key !== key &&
+        e.realm === entry.realm &&
+        (e.result.build?.path ?? null) === path,
+    ),
+  ].slice(0, MAX_ENTRIES);
+  if (realm.value !== "pc-tencent") ninja.queuePricesFetch();
+  return entries.value[0];
+}
+
+function show(entry: Entry) {
+  state.value = { kind: "done", entry };
+}
+
+function clearOthers() {
+  if (state.value.kind === "done") entries.value = [state.value.entry];
+}
 
 const side = computed(() =>
   checkPosition.value.x > window.screenX + window.innerWidth / 2
@@ -207,6 +350,7 @@ Host.onEvent("MAIN->CLIENT::item-text", (e) => {
   checkPosition.value = e.position;
   const id = `${Date.now()}-${++requestSeq}`;
   requestId = id;
+  requestText = e.clipboard;
   state.value = { kind: "waiting" };
   wm.show(props.config.wmId);
   clearTimeout(watchdog);
@@ -285,7 +429,8 @@ Host.onEvent("MAIN->CLIENT::assistant-response", (e) => {
       message: "后端没有返回评估结果。",
     });
   } else {
-    finish({ kind: "done", result: e.result as EvalResult });
+    const entry = addEntry(requestText, e.result as EvalResult);
+    finish({ kind: "done", entry });
   }
 });
 

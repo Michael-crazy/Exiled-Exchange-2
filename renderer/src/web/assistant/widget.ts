@@ -8,4 +8,11 @@ export interface AssistantEvalWidget extends Widget {
   watchClipboard: boolean;
   // Add the item under the mouse (or the market copy) to PoB's item list (U06).
   addToPobHotkey: string | null;
+  // M08b: value for money is counted per 1 of this currency (trade id).
+  valueCurrency: string;
+  // M08b: Tencent exchange rates typed in PoB's options; 0 = not filled in.
+  // 1 Divine Orb = N Exalted Orbs / N Chaos Orbs; 1 Mirror = N Divine Orbs.
+  tencentExaltedPerDivine: number;
+  tencentChaosPerDivine: number;
+  tencentDivinePerMirror: number;
 }

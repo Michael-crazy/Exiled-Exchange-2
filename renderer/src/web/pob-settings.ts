@@ -1,4 +1,5 @@
 import { KeyToCode, isModKey } from "@ipc/KeyToCode";
+import { BASE_CURRENCIES } from "@/web/assistant/price-value";
 
 // Applies settings sent from Path of Building's Options window (PoE2
 // assistant U03, see main/src/host-files/PobSettingsBridge.ts). Each entry is
@@ -29,7 +30,18 @@ const RULES: Record<string, (value: unknown) => boolean> = {
   "overlayKey": (v) => isHotkey(v),
   "widget:price-check.hotkey": (v) => v === null || isHotkey(v, true),
   "widget:price-check.hotkeyHold": (v) => v === "Ctrl" || v === "Alt",
+  // M08b: value for money
+  "widget:assistant-eval.valueCurrency": (v) =>
+    BASE_CURRENCIES.includes(v as string),
+  "widget:assistant-eval.tencentExaltedPerDivine": isRate,
+  "widget:assistant-eval.tencentChaosPerDivine": isRate,
+  "widget:assistant-eval.tencentDivinePerMirror": isRate,
 };
+
+// Exchange rate typed in PoB; 0 = not filled in.
+function isRate(v: unknown): boolean {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 && v < 1e9;
+}
 
 function isHotkeyField(key: string) {
   return key === "hotkey" || /(Key|Hotkey)$/.test(key);

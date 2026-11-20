@@ -41,6 +41,17 @@
       >
         已自动纠正 BD 中 {{ result.build!.corrected_lines }} 行抗性写法
       </div>
+      <PriceInput
+        v-if="!entry.fromNote"
+        :key="entry.key"
+        class="mt-1"
+        :amount-text="entry.amountText"
+        :currency="entry.currency"
+        :realm="realm"
+        :autofocus="!entry.amountText"
+        @update:amount-text="emit('update:amountText', $event)"
+        @update:currency="emit('update:currency', $event)"
+      />
     </div>
 
     <div v-if="unrecognized.length" class="text-yellow-400">
@@ -66,7 +77,44 @@
         {{ slot.summary }}
       </div>
 
-      <div v-if="result.slots.length > 1" class="flex flex-wrap gap-1">
+      <div class="text-gray-400" data-testid="value-line">
+        性价比（每 1 {{ currencyName(base)
+        }}<template v-if="slotTabs">，{{ slot.label }}</template
+        >）：
+        <template v-if="value.value">
+          <template v-if="value.value.dpsPercent !== null">
+            DPS
+            <span :class="signClass(value.value.dpsPercent)"
+              >{{ compact(value.value.dpsPercent) }}%</span
+            >
+            ·
+          </template>
+          有效生命
+          <span :class="signClass(value.value.ehp)">{{
+            compact(value.value.ehp)
+          }}</span>
+        </template>
+        <span
+          v-else-if="value.inBase && !value.inBase.ok"
+          class="text-yellow-500"
+        >
+          {{ missingRate }}
+        </span>
+        <span v-else class="text-gray-500">{{
+          entry.fromNote ? "价格为 0" : "输入价格后显示"
+        }}</span>
+        <div
+          v-if="value.value && value.price && value.price.currency !== base"
+          class="text-gray-500 text-xs"
+        >
+          {{ amountLabel(value.price.amount) }}
+          {{ currencyName(value.price.currency) }} 约合
+          {{ amountLabel(value.inBase!.ok ? value.inBase!.value : 0) }}
+          {{ currencyName(base) }}
+        </div>
+      </div>
+
+      <div v-if="slotTabs" class="flex flex-wrap gap-1">
         <button
           v-for="s of result.slots"
           :key="s.slot"
@@ -76,7 +124,7 @@
               ? 'bg-gray-600 text-gray-100'
               : 'bg-gray-900 text-gray-400 hover:text-gray-200'
           "
-          @click="selected = s.slot"
+          @click="emit('update:slot', s.slot)"
         >
           {{ s.label }}
           <span :class="trendClass(dpsTrendOf(s))">{{ dpsBrief(s) }}</span>
@@ -161,7 +209,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import {
-  type EvalResult,
   type EvalSlot,
   type Trend,
   num,
@@ -169,8 +216,31 @@ import {
   trend,
   priceText,
 } from "./eval-result";
+import {
+  type Entry,
+  type EntryValue,
+  compact,
+  currencyName,
+  entrySlot,
+} from "./price-value";
+import PriceInput from "./PriceInput.vue";
 
-const props = defineProps<{ result: EvalResult }>();
+const props = defineProps<{
+  entry: Entry;
+  value: EntryValue;
+  // Base currency of the value line.
+  base: string;
+  realm: string;
+  // Why the price cannot be converted (value.inBase not ok).
+  missingRate: string;
+}>();
+
+const emit = defineEmits<{
+  (
+    e: "update:slot" | "update:amountText" | "update:currency",
+    value: string,
+  ): void;
+}>();
 
 const METRICS = [
   { key: "TotalEHP", label: "有效生命" },
@@ -179,23 +249,18 @@ const METRICS = [
   { key: "Mana", label: "魔力" },
 ] as const;
 
-const selected = ref<string | null>(null);
+const result = computed(() => props.entry.result);
 const showUnrecognized = ref(false);
 watch(
-  () => props.result,
-  (result) => {
-    selected.value = result.default_slot;
+  () => props.entry.result,
+  () => {
     showUnrecognized.value = false;
   },
-  { immediate: true },
 );
 
-const slot = computed<EvalSlot | undefined>(
-  () =>
-    props.result.slots.find((s) => s.slot === selected.value) ??
-    props.result.slots[0],
-);
-const unrecognized = computed(() => props.result.item.unrecognized ?? []);
+const slot = computed<EvalSlot | undefined>(() => entrySlot(props.entry));
+const slotTabs = computed(() => result.value.slots.length > 1);
+const unrecognized = computed(() => result.value.item.unrecognized ?? []);
 const resists = computed(() => Object.values(slot.value!.resists));
 const gaps = computed(() => Object.values(slot.value!.attribute_gaps));
 const dpsTrend = computed(() => dpsTrendOf(slot.value!));
@@ -207,7 +272,7 @@ const slotTrend = computed<Trend>(() =>
 );
 
 const nameClass = computed(() => {
-  switch (props.result.item.rarity) {
+  switch (result.value.item.rarity) {
     case "Unique":
       return "text-unique";
     case "Rare":
@@ -235,6 +300,22 @@ function dpsBrief(s: EvalSlot): string {
     return `${s.dps.percent > 0 ? "+" : ""}${s.dps.percent.toFixed(1)}%`;
   }
   return signed(s.dps.absolute);
+}
+
+function signClass(value: number): string {
+  return trendClass(
+    Number(compact(value)) > 0
+      ? "up"
+      : Number(compact(value)) < 0
+        ? "down"
+        : "same",
+  );
+}
+
+function amountLabel(value: number): string {
+  return Math.abs(value) >= 100
+    ? value.toFixed(0)
+    : String(Number(value.toPrecision(3)));
 }
 
 function arrow(t: Trend): string {

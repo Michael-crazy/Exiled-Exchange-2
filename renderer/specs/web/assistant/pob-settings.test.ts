@@ -11,7 +11,13 @@ function config() {
     hideOverlayOnBlur: false,
     widgets: [
       { wmType: "price-check", hotkey: "D", hotkeyHold: "Ctrl" },
-      { wmType: "assistant-eval", hotkey: "Ctrl + Shift + D" as string | null },
+      {
+        wmType: "assistant-eval",
+        hotkey: "Ctrl + Shift + D" as string | null,
+        valueCurrency: "divine",
+        tencentExaltedPerDivine: 0,
+        tencentChaosPerDivine: 0,
+      },
     ],
   };
 }
@@ -89,5 +95,25 @@ describe("settings from Path of Building", () => {
         "widget:assistant-eval.clipboardHotkey": "Ctrl + Nope",
       }),
     ).toEqual({ "widget:assistant-eval.clipboardHotkey": "invalid value" });
+  });
+
+  it("checks the value-for-money settings (M08b)", () => {
+    const cfg = config();
+    const rejected = applyPobSettings(cfg, {
+      "widget:assistant-eval.valueCurrency": "exalted",
+      "widget:assistant-eval.tencentExaltedPerDivine": 420.5,
+      "widget:assistant-eval.tencentChaosPerDivine": -3,
+    });
+    expect(rejected).toEqual({
+      "widget:assistant-eval.tencentChaosPerDivine": "invalid value",
+    });
+    expect(cfg.widgets[1]).toMatchObject({
+      valueCurrency: "exalted",
+      tencentExaltedPerDivine: 420.5,
+      tencentChaosPerDivine: 0,
+    });
+    expect(
+      applyPobSettings(cfg, { "widget:assistant-eval.valueCurrency": "apple" }),
+    ).toEqual({ "widget:assistant-eval.valueCurrency": "invalid value" });
   });
 });
