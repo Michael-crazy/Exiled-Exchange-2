@@ -1,5 +1,6 @@
 import { Host } from "@/web/background/IPC";
 import { AppConfig } from "@/web/Config";
+import { rememberTencentNames } from "./trade/tencent";
 
 // Tencent items are copied in Simplified Chinese, which EE2 has no data for.
 // The assistant backend translates them with P05 into the English game text
@@ -21,12 +22,15 @@ export async function translateTencentItem(
       if (e.id !== id) return;
       listener.abort();
       clearTimeout(timer);
-      const result = e.result as { text?: string } | undefined;
+      const result = e.result as
+        | { text?: string; names?: Array<[string, string]> }
+        | undefined;
       if (e.error) {
         resolve({ error: e.error.message });
       } else if (!result?.text) {
         resolve({ error: "助手后端没有返回英文装备文本。" });
       } else {
+        rememberTencentNames(result.names ?? []);
         resolve({ text: result.text });
       }
     });

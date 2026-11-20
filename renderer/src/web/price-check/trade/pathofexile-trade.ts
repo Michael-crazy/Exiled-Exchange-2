@@ -1,5 +1,10 @@
 import { ItemCategory, ParsedItem, ItemRarity } from "@/parser";
-import { fetchRealmParam, tradeLeaguePath, withTencentLogin } from "./tencent";
+import {
+  fetchRealmParam,
+  tradeLeaguePath,
+  tradeName,
+  withTencentLogin,
+} from "./tencent";
 import {
   ItemFilters,
   StatFilter,
@@ -1475,7 +1480,8 @@ function tradeIdToQuery(id: string, stat: StatFilter) {
   };
 }
 
-function nameToQuery(name: string, filters: ItemFilters) {
+function nameToQuery(englishName: string, filters: ItemFilters) {
+  const name = tradeName(englishName);
   if (!filters.discriminator) {
     return name;
   } else {

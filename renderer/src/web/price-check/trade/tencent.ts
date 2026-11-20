@@ -21,6 +21,19 @@ export function fetchRealmParam() {
   return isTencent() ? "&realm=poe2" : "";
 }
 
+// The site searches unique and base names in Simplified Chinese, while EE2
+// works with the English names of the translated item. translate-item gives
+// the pairs from the copied item (`names`).
+const zhNames = new Map<string, string>();
+
+export function rememberTencentNames(pairs: Array<[string, string]>) {
+  for (const [en, zh] of pairs) zhNames.set(en, zh);
+}
+
+export function tradeName(name: string) {
+  return isTencent() ? (zhNames.get(name) ?? name) : name;
+}
+
 // Set after a background reload did not bring the session back, so later
 // requests ask for login at once instead of reloading the page every time.
 let loginNeeded = false;
