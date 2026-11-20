@@ -34,6 +34,12 @@ export interface ShortcutAction {
         target: string;
       }
     | {
+        // PoE2 assistant (U06): add the item under the mouse, or else the
+        // item already on the clipboard, to the build open in PoB.
+        type: "add-to-pob";
+        target: string;
+      }
+    | {
         type: "ocr-text";
         target: "heist-gems";
       }
@@ -223,6 +229,8 @@ type IpcItemText = Event<
     // clipboard-watch: the game put item text on the clipboard by itself
     // (the in-game market's copy button), no hotkey was pressed.
     trigger?: "clipboard-watch";
+    // add-to-pob: add the item to PoB instead of evaluating it (U06).
+    mode?: "add-to-pob";
   }
 >;
 
@@ -236,6 +244,7 @@ type IpcItemTextFailed = Event<
     // clipboard-empty: the clipboard hotkey found no item text there.
     reason: "unchanged" | "not-item" | "clipboard-empty";
     focusOverlay: boolean;
+    mode?: "add-to-pob";
   }
 >;
 

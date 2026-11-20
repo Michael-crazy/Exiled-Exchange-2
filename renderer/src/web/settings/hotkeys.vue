@@ -93,6 +93,10 @@ const hotkeys = computed<HotkeySchema[]>(() => {
           translationKey: "settings.assistant_eval_clipboard",
           config: _configModelValue(assistantEvalWidget, "clipboardHotkey"),
         },
+        {
+          translationKey: "settings.assistant_add_to_pob",
+          config: _configModelValue(assistantEvalWidget, "addToPobHotkey"),
+        },
       ],
     },
     {

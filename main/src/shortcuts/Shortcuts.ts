@@ -1,4 +1,4 @@
-import { screen, globalShortcut } from "electron";
+import { screen, globalShortcut, clipboard } from "electron";
 import { uIOhook, UiohookKey, UiohookWheelEvent } from "uiohook-napi";
 import {
   isModKey,
@@ -287,6 +287,51 @@ export class Shortcuts {
                 : undefined,
               this.gameConfig.showModsKey,
             );
+          } else if (entry.action.type === "add-to-pob") {
+            const { action } = entry;
+            const position = screen.getCursorScreenPoint();
+            // An item copied in the market, used when the mouse is not over an item.
+            const marketCopy = clipboardItemText();
+            const send = (text: string) => {
+              this.server.sendEventTo("last-active", {
+                name: "MAIN->CLIENT::item-text",
+                payload: {
+                  target: action.target,
+                  clipboard: text,
+                  position,
+                  focusOverlay: false,
+                  mode: "add-to-pob",
+                },
+              });
+            };
+            this.clipboard
+              .readItemText()
+              .then(send)
+              .catch((err: unknown) => {
+                const reason =
+                  err instanceof NoItemTextError ? err.reason : "not-item";
+                if (marketCopy != null) {
+                  // Copying clears an item already on the clipboard: put it back.
+                  if (clipboardItemText() == null)
+                    clipboard.writeText(marketCopy);
+                  send(marketCopy);
+                  return;
+                }
+                this.logger.write(
+                  `warn [Shortcuts] no item text for "add-to-pob" (${reason})`,
+                );
+                this.server.sendEventTo("last-active", {
+                  name: "MAIN->CLIENT::item-text-failed",
+                  payload: {
+                    target: action.target,
+                    position,
+                    reason,
+                    focusOverlay: false,
+                    mode: "add-to-pob",
+                  },
+                });
+              });
+            pressKeysToCopyItemText(undefined, this.gameConfig.showModsKey);
           } else if (entry.action.type === "clipboard-item") {
             const { action } = entry;
             const position = screen.getCursorScreenPoint();

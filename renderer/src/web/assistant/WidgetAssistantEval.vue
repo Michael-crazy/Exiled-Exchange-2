@@ -11,9 +11,23 @@
       class="shrink-0 flex flex-col text-gray-200 pointer-events-auto self-start"
       style="width: 28.75rem; max-height: 100%"
     >
-      <AppTitleBar :title="`装备评估 · ${gameLabel}`" @close="close" />
+      <AppTitleBar
+        :title="`${state.kind === 'notice' ? '加入 PoB' : '装备评估'} · ${gameLabel}`"
+        @close="close"
+      />
       <div class="bg-gray-800 p-3 text-sm overflow-y-auto min-h-0">
         <div v-if="state.kind === 'waiting'" class="text-gray-400">评估中…</div>
+        <div
+          v-else-if="state.kind === 'notice'"
+          class="text-base"
+          :class="{
+            'text-gray-400': state.tone === 'pending',
+            'text-green-400': state.tone === 'ok',
+            'text-red-400': state.tone === 'error',
+          }"
+        >
+          {{ state.message }}
+        </div>
         <ui-error-box v-else-if="state.kind === 'error'">
           <template #name>无法评估</template>
           <p>{{ state.message }}</p>
@@ -44,6 +58,7 @@ export default {
         hotkey: "Ctrl + Shift + D",
         clipboardHotkey: "Ctrl + Shift + V",
         watchClipboard: true,
+        addToPobHotkey: "Ctrl + Shift + A",
       };
     },
   } satisfies WidgetSpec,
@@ -72,7 +87,9 @@ const wm = inject<WidgetManager>("wm")!;
 type State =
   | { kind: "waiting" }
   | { kind: "done"; result: EvalResult }
-  | { kind: "error"; code: string; message: string };
+  | { kind: "error"; code: string; message: string }
+  // U06: a short notice for the add-to-PoB hotkey; it hides by itself.
+  | { kind: "notice"; tone: "pending" | "ok" | "error"; message: string };
 
 const state = ref<State>({ kind: "waiting" });
 const checkPosition = ref({ x: 1, y: 1 });
@@ -82,10 +99,52 @@ let watchdog: ReturnType<typeof setTimeout> | undefined;
 // Longer than the main process' own 30 s backend timeout.
 const WATCHDOG_MS = 40_000;
 
+let hideTimer: ReturnType<typeof setTimeout> | undefined;
+// Notices stay this long, then the widget hides (errors a little longer).
+const NOTICE_MS = { ok: 2500, error: 5000 };
+
 function finish(next: State) {
   clearTimeout(watchdog);
+  clearTimeout(hideTimer);
   requestId = "";
   state.value = next;
+  if (next.kind === "notice" && next.tone !== "pending") {
+    hideTimer = setTimeout(() => {
+      if (state.value === next) wm.hide(props.config.wmId);
+    }, NOTICE_MS[next.tone]);
+  }
+}
+
+// Add the item to the build open in PoB; the game keeps the focus.
+function addToPob(text: string) {
+  const id = `${Date.now()}-${++requestSeq}`;
+  requestId = id;
+  clearTimeout(hideTimer);
+  state.value = { kind: "notice", tone: "pending", message: "正在加入 PoB…" };
+  wm.show(props.config.wmId);
+  clearTimeout(watchdog);
+  watchdog = setTimeout(() => {
+    if (requestId !== id) return;
+    finish({
+      kind: "notice",
+      tone: "error",
+      message: "助手没有收到后端的结果，请稍后重试。",
+    });
+  }, WATCHDOG_MS);
+  Host.sendEvent({
+    name: "CLIENT->MAIN::assistant-request",
+    payload: {
+      id,
+      method: "add-to-pob",
+      params: {
+        item_text: text,
+        game: {
+          realm: detectedGame.value?.realm ?? AppConfig().realm,
+          language: detectedGame.value?.language ?? null,
+        },
+      },
+    },
+  });
 }
 
 const gameLabel = computed(() => {
@@ -133,6 +192,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
 
 Host.onEvent("MAIN->CLIENT::item-text", (e) => {
   if (e.target !== "assistant-eval") return;
+  if (e.mode === "add-to-pob") {
+    checkPosition.value = e.position;
+    addToPob(e.clipboard);
+    return;
+  }
   // The hotkey reached the game, so the overlay is not focused: toggle.
   // An item copied in the market always replaces what is shown.
   if (isShown() && e.trigger !== "clipboard-watch") {
@@ -172,6 +236,17 @@ Host.onEvent("MAIN->CLIENT::item-text", (e) => {
 
 Host.onEvent("MAIN->CLIENT::item-text-failed", (e) => {
   if (e.target !== "assistant-eval") return;
+  if (e.mode === "add-to-pob") {
+    checkPosition.value = e.position;
+    finish({
+      kind: "notice",
+      tone: "error",
+      message:
+        "没有可加入的装备：请把鼠标停在背包、仓库或市集里的装备上，或先在市集里点“复制”，再按快捷键。",
+    });
+    wm.show(props.config.wmId);
+    return;
+  }
   if (isShown()) {
     wm.hide(props.config.wmId);
     return;
@@ -184,6 +259,19 @@ Host.onEvent("MAIN->CLIENT::item-text-failed", (e) => {
 
 Host.onEvent("MAIN->CLIENT::assistant-response", (e) => {
   if (!requestId || e.id !== requestId) return;
+  if (state.value.kind === "notice") {
+    const result = e.result as { message?: string } | undefined;
+    finish(
+      e.error
+        ? { kind: "notice", tone: "error", message: e.error.message }
+        : {
+            kind: "notice",
+            tone: "ok",
+            message: result?.message ?? "已加入 PoB",
+          },
+    );
+    return;
+  }
   if (e.error) {
     finish({
       kind: "error",

@@ -341,6 +341,7 @@
     "assistant_eval": "裝備評估（PoE2 助手）",
     "assistant": "PoE2 助手",
     "assistant_eval_clipboard": "評估剪貼簿裡的裝備（PoE2 助手）",
+    "assistant_add_to_pob": "把裝備加入 PoB（PoE2 助手）",
     "assistant_watch_clipboard": "市集「複製」後自動評估裝備（PoE2 助手）",
     "title": "設置 - 流亡交易所 2",
     "language": "語言",

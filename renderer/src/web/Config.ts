@@ -177,7 +177,7 @@ export interface Config {
 }
 
 export const defaultConfig = (): Config => ({
-  configVersion: 37,
+  configVersion: 38,
   overlayKey: "Shift + Space",
   overlayBackground: "rgba(129, 139, 149, 0.15)",
   overlayBackgroundClose: true,
@@ -732,6 +732,18 @@ function upgradeConfig(_config: Config): Config {
 
     config.configVersion = 37;
   }
+
+  if (config.configVersion < 38) {
+    // PoE2 assistant: add the item to the build open in PoB (U06)
+    const assistantEval = config.widgets.find(
+      (w) => w.wmType === "assistant-eval",
+    ) as AssistantEvalWidget | undefined;
+    if (assistantEval) {
+      assistantEval.addToPobHotkey ??= "Ctrl + Shift + A";
+    }
+
+    config.configVersion = 38;
+  }
   /* eslint-enable */
 
   return config as unknown as Config;
@@ -815,6 +827,12 @@ function getConfigForHost(): HostConfig {
         target: "assistant-eval",
         focusOverlay: true,
       },
+    });
+  }
+  if (assistantEval.addToPobHotkey) {
+    actions.push({
+      shortcut: assistantEval.addToPobHotkey,
+      action: { type: "add-to-pob", target: "assistant-eval" },
     });
   }
   const library = AppConfig("library") as LibraryWidget;
