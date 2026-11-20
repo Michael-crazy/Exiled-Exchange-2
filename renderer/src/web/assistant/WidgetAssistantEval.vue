@@ -42,6 +42,8 @@ export default {
         wmZorder: "exclusive",
         wmFlags: ["hide-on-blur", "menu::skip"],
         hotkey: "Ctrl + Shift + D",
+        clipboardHotkey: "Ctrl + Shift + V",
+        watchClipboard: true,
       };
     },
   } satisfies WidgetSpec,
@@ -113,13 +115,14 @@ function close() {
 // While the overlay has focus the game's global hotkeys are off,
 // so the overlay sees the hotkey as a normal key press.
 function onKeydown(e: KeyboardEvent) {
-  if (!isShown() || !props.config.hotkey) return;
+  if (!isShown()) return;
   let code = e.code;
   if (code.startsWith("Key")) code = code.slice("Key".length);
   else if (code.startsWith("Digit")) code = code.slice("Digit".length);
+  const pressed = hotkeyToString([code], e.ctrlKey, e.shiftKey, e.altKey);
   if (
-    hotkeyToString([code], e.ctrlKey, e.shiftKey, e.altKey) ===
-    props.config.hotkey
+    (props.config.hotkey && pressed === props.config.hotkey) ||
+    (props.config.clipboardHotkey && pressed === props.config.clipboardHotkey)
   ) {
     e.preventDefault();
     close();
@@ -131,7 +134,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
 Host.onEvent("MAIN->CLIENT::item-text", (e) => {
   if (e.target !== "assistant-eval") return;
   // The hotkey reached the game, so the overlay is not focused: toggle.
-  if (isShown()) {
+  // An item copied in the market always replaces what is shown.
+  if (isShown() && e.trigger !== "clipboard-watch") {
     wm.hide(props.config.wmId);
     return;
   }

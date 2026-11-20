@@ -1,8 +1,16 @@
 <template>
   <div class="flex flex-col gap-y-2">
     <div>
-      <div class="text-base leading-tight" :class="nameClass">
-        {{ result.item.name || result.item.base_name }}
+      <div class="flex items-start gap-2">
+        <div class="flex-1 text-base leading-tight" :class="nameClass">
+          {{ result.item.name || result.item.base_name }}
+        </div>
+        <div
+          v-if="result.item.price"
+          class="shrink-0 whitespace-nowrap rounded bg-gray-900 px-2 text-yellow-300"
+        >
+          {{ priceText(result.item.price) }}
+        </div>
       </div>
       <div
         v-if="
@@ -23,6 +31,15 @@
           }}</template
         >
         <template v-else>DPS 来自角色</template>
+        <span v-if="result.build?.unsaved" class="text-yellow-500">
+          · 含未保存的修改</span
+        >
+      </div>
+      <div
+        v-if="(result.build?.corrected_lines ?? 0) > 0"
+        class="text-gray-500 text-xs"
+      >
+        已自动纠正 BD 中 {{ result.build!.corrected_lines }} 行抗性写法
       </div>
     </div>
 
@@ -150,6 +167,7 @@ import {
   num,
   signed,
   trend,
+  priceText,
 } from "./eval-result";
 
 const props = defineProps<{ result: EvalResult }>();

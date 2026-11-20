@@ -26,6 +26,10 @@ export class HostClipboard {
 
   private isRestored = true;
 
+  // Item text read by the last hotkey copy, so that the clipboard watcher
+  // does not take it for a copy made in the game.
+  lastItemText = "";
+
   get isPolling() {
     return this.pollPromise != null;
   }
@@ -63,6 +67,7 @@ export class HostClipboard {
         const textAfter = clipboard.readText();
 
         if (isPoeItem(textAfter)) {
+          this.lastItemText = textAfter;
           if (this.shouldRestore) {
             clipboard.writeText(textBefore);
           }
@@ -117,7 +122,7 @@ export class HostClipboard {
   }
 }
 
-function isPoeItem(text: string) {
+export function isPoeItem(text: string) {
   return LANGUAGE_DETECTOR.find(
     ({ firstLine, uncutSkillGemLine }) =>
       text.startsWith(firstLine) || text.startsWith(uncutSkillGemLine),

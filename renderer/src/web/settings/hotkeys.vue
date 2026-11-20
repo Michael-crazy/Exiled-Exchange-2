@@ -5,6 +5,9 @@
     </div>
     <div class="flex flex-col gap-4 mb-8">
       <HotkeysGeneric :hotkeys="hotkeys" />
+      <ui-toggle v-model="watchClipboard">{{
+        t("settings.assistant_watch_clipboard")
+      }}</ui-toggle>
     </div>
     <div class="mb-8 flex">
       <label class="flex-1">{{ t("settings.stash_scroll") }}</label>
@@ -40,6 +43,7 @@ import { ItemCheckWidget } from "../item-check/widget.js";
 import type { AssistantEvalWidget } from "../assistant/widget.js";
 
 import UiRadio from "@/web/ui/UiRadio.vue";
+import UiToggle from "@/web/ui/UiToggle.vue";
 import HotkeysGeneric, { HotkeySchema } from "../settings/HotkeysGeneric.vue";
 
 const props = defineProps(configProp());
@@ -79,8 +83,17 @@ const hotkeys = computed<HotkeySchema[]>(() => {
       ],
     },
     {
-      translationKey: "settings.assistant_eval",
-      config: _configModelValue(assistantEvalWidget, "hotkey"),
+      translationKey: "settings.assistant",
+      items: [
+        {
+          translationKey: "settings.assistant_eval",
+          config: _configModelValue(assistantEvalWidget, "hotkey"),
+        },
+        {
+          translationKey: "settings.assistant_eval_clipboard",
+          config: _configModelValue(assistantEvalWidget, "clipboardHotkey"),
+        },
+      ],
     },
     {
       translationKey: "settings.overlay",
@@ -103,6 +116,10 @@ const hotkeys = computed<HotkeySchema[]>(() => {
 });
 
 const stashScroll = configModelValue(() => props.config, "stashScroll");
+const watchClipboard = configModelValue(
+  () => findWidget<AssistantEvalWidget>("assistant-eval", props.config)!,
+  "watchClipboard",
+);
 
 const { t } = useI18n();
 </script>

@@ -13,6 +13,9 @@ export interface HostConfig {
   libraryOutputPath: string | null;
   initialDelay: number;
   hideOverlayOnBlur: boolean;
+  // PoE2 assistant: evaluate item text that appears on the clipboard
+  // while the game is in front (the in-game market's copy button).
+  assistantWatchClipboard: boolean;
 }
 
 export interface ShortcutAction {
@@ -21,6 +24,12 @@ export interface ShortcutAction {
   action:
     | {
         type: "copy-item";
+        focusOverlay?: boolean;
+        target: string;
+      }
+    | {
+        // Use the item text already on the clipboard, without copying.
+        type: "clipboard-item";
         focusOverlay?: boolean;
         target: string;
       }
@@ -192,6 +201,9 @@ type IpcItemText = Event<
     item?: unknown;
     position: { x: number; y: number };
     focusOverlay: boolean;
+    // clipboard-watch: the game put item text on the clipboard by itself
+    // (the in-game market's copy button), no hotkey was pressed.
+    trigger?: "clipboard-watch";
   }
 >;
 
@@ -202,7 +214,8 @@ type IpcItemTextFailed = Event<
     position: { x: number; y: number };
     // unchanged: the game copied nothing (equipped items cannot be copied).
     // not-item: the clipboard changed to something that is not an item.
-    reason: "unchanged" | "not-item";
+    // clipboard-empty: the clipboard hotkey found no item text there.
+    reason: "unchanged" | "not-item" | "clipboard-empty";
     focusOverlay: boolean;
   }
 >;

@@ -36,8 +36,23 @@ export interface EvalSlot {
   summary: string;
 }
 
+// Price note of an item copied in the in-game market.
+export interface EvalPrice {
+  kind: "buyout" | "price";
+  amount: number;
+  currency: string;
+  currency_name: string | null;
+}
+
 export interface EvalResult {
-  build: { name?: string | null; path?: string | null } | null;
+  build: {
+    name?: string | null;
+    path?: string | null;
+    // Resistance lines written wrongly in the build, fixed on load.
+    corrected_lines?: number;
+    // The build open in PoB has changes that are not saved yet.
+    unsaved?: boolean;
+  } | null;
   skill: {
     dps_source: "player" | "minion";
     main_skill: string | null;
@@ -50,6 +65,7 @@ export interface EvalResult {
     base_name: string | null;
     unique_name: string | null;
     unrecognized: Array<{ line: number; text: string; note?: string }>;
+    price?: EvalPrice | null;
   };
   slots: EvalSlot[];
   default_slot: string | null;
@@ -76,4 +92,17 @@ export function signed(value: number): string {
   return rounded > 0
     ? `+${grouping.format(rounded)}`
     : grouping.format(rounded);
+}
+
+const amountFormat = new Intl.NumberFormat("zh-CN", {
+  maximumFractionDigits: 2,
+  useGrouping: false,
+});
+
+// "一口价 1 蛻變石" / "标价 …"; unknown currencies keep the note's code.
+export function priceText(price: EvalPrice): string {
+  const kind = price.kind === "buyout" ? "一口价" : "标价";
+  return `${kind} ${amountFormat.format(price.amount)} ${
+    price.currency_name ?? price.currency
+  }`;
 }

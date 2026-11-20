@@ -8,6 +8,7 @@ import {
 import { typeInChat, stashSearch } from "./text-box";
 import { WidgetAreaTracker } from "../windowing/WidgetAreaTracker";
 import { HostClipboard, NoItemTextError } from "./HostClipboard";
+import { ClipboardWatcher, clipboardItemText } from "./ClipboardWatcher";
 import { OcrWorker } from "../vision/link-main";
 import type { ShortcutAction } from "../../../ipc/types";
 import type { Logger } from "../RemoteLogger";
@@ -27,6 +28,7 @@ export class Shortcuts {
   private logKeys = false;
   private areaTracker: WidgetAreaTracker;
   private clipboard: HostClipboard;
+  private clipboardWatcher: ClipboardWatcher;
 
   static async create(
     logger: Logger,
@@ -57,6 +59,26 @@ export class Shortcuts {
   ) {
     this.areaTracker = new WidgetAreaTracker(server, overlay);
     this.clipboard = new HostClipboard(logger);
+    this.clipboardWatcher = new ClipboardWatcher(
+      this.clipboard,
+      poeWindow,
+      (text) => {
+        this.areaTracker.removeListeners();
+        this.server.sendEventTo("last-active", {
+          name: "MAIN->CLIENT::item-text",
+          payload: {
+            target: "assistant-eval",
+            clipboard: text,
+            position: screen.getCursorScreenPoint(),
+            focusOverlay: true,
+            trigger: "clipboard-watch",
+          },
+        });
+        if (this.overlay.wasUsedRecently) {
+          this.overlay.assertOverlayActive();
+        }
+      },
+    );
 
     this.poeWindow.on("active-change", (isActive) => {
       process.nextTick(() => {
@@ -101,6 +123,10 @@ export class Shortcuts {
         }
       }
     });
+  }
+
+  updateClipboardWatch(enabled: boolean) {
+    this.clipboardWatcher.setEnabled(enabled);
   }
 
   updateDelay(delay: number) {
@@ -261,6 +287,35 @@ export class Shortcuts {
                 : undefined,
               this.gameConfig.showModsKey,
             );
+          } else if (entry.action.type === "clipboard-item") {
+            const { action } = entry;
+            const position = screen.getCursorScreenPoint();
+            const text = clipboardItemText();
+            if (text != null) {
+              this.areaTracker.removeListeners();
+              this.server.sendEventTo("last-active", {
+                name: "MAIN->CLIENT::item-text",
+                payload: {
+                  target: action.target,
+                  clipboard: text,
+                  position,
+                  focusOverlay: Boolean(action.focusOverlay),
+                },
+              });
+            } else {
+              this.server.sendEventTo("last-active", {
+                name: "MAIN->CLIENT::item-text-failed",
+                payload: {
+                  target: action.target,
+                  position,
+                  reason: "clipboard-empty",
+                  focusOverlay: Boolean(action.focusOverlay),
+                },
+              });
+            }
+            if (action.focusOverlay && this.overlay.wasUsedRecently) {
+              this.overlay.assertOverlayActive();
+            }
           } else if (
             entry.action.type === "ocr-text" &&
             entry.action.target === "heist-gems"

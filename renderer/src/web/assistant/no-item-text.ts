@@ -4,6 +4,13 @@ type Reason = IpcEventPayload<"MAIN->CLIENT::item-text-failed">["reason"];
 
 // Shown when a hotkey did not get item text from the game.
 export function noItemText(reason: Reason) {
+  if (reason === "clipboard-empty") {
+    return {
+      code: "clipboard-no-item",
+      message:
+        "剪贴板里没有装备信息：请先在市集里点“复制”，或对装备按 Ctrl + C，再按快捷键。",
+    };
+  }
   return reason === "unchanged"
     ? {
         code: "no-item-copied",

@@ -160,7 +160,7 @@ export interface Config {
 }
 
 export const defaultConfig = (): Config => ({
-  configVersion: 36,
+  configVersion: 37,
   overlayKey: "Shift + Space",
   overlayBackground: "rgba(129, 139, 149, 0.15)",
   overlayBackgroundClose: true,
@@ -702,6 +702,19 @@ function upgradeConfig(_config: Config): Config {
 
     config.configVersion = 36;
   }
+
+  if (config.configVersion < 37) {
+    // PoE2 assistant: evaluate items copied in the in-game market
+    const assistantEval = config.widgets.find(
+      (w) => w.wmType === "assistant-eval",
+    ) as AssistantEvalWidget | undefined;
+    if (assistantEval) {
+      assistantEval.clipboardHotkey ??= "Ctrl + Shift + V";
+      assistantEval.watchClipboard ??= true;
+    }
+
+    config.configVersion = 37;
+  }
   /* eslint-enable */
 
   return config as unknown as Config;
@@ -772,6 +785,16 @@ function getConfigForHost(): HostConfig {
       shortcut: assistantEval.hotkey,
       action: {
         type: "copy-item",
+        target: "assistant-eval",
+        focusOverlay: true,
+      },
+    });
+  }
+  if (assistantEval.clipboardHotkey) {
+    actions.push({
+      shortcut: assistantEval.clipboardHotkey,
+      action: {
+        type: "clipboard-item",
         target: "assistant-eval",
         focusOverlay: true,
       },
@@ -868,5 +891,6 @@ function getConfigForHost(): HostConfig {
     libraryOutputPath: library.libraryOutputPath,
     initialDelay: priceCheck.initialDelay,
     hideOverlayOnBlur: config.hideOverlayOnBlur,
+    assistantWatchClipboard: assistantEval.watchClipboard,
   };
 }

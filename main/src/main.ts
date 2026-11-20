@@ -157,6 +157,7 @@ let tray: AppTray;
               cfg.language,
             );
             shortcuts.updateDelay(cfg.initialDelay);
+            shortcuts.updateClipboardWatch(cfg.assistantWatchClipboard);
             appUpdater.checkAtStartup();
             tray.overlayKey = cfg.overlayKey;
             fileWriter.restart(cfg.libraryAlpha, cfg.libraryOutputPath);
