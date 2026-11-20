@@ -103,7 +103,13 @@ export async function initConfig() {
     // )
   }
 
+  const loadedVersion = config.configVersion;
   updateConfig(upgradeConfig(config));
+  if (AppConfig().configVersion !== loadedVersion) {
+    // Write the upgraded config back right away: other programs (the PoB
+    // settings group) read config.json and must see the new keys.
+    saveConfig();
+  }
 }
 
 export function poeWebApi() {
