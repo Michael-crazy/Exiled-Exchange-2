@@ -409,9 +409,9 @@
     "tencent_logged_out": "已退出國服登錄。",
     "tencent_login_required": "國服市集未登錄或登錄已過期，請先登錄。",
     "tencent_rates": "取國服匯率",
-    "tencent_rates_loading": "正在從國服通貨兌換取匯率…",
+    "tencent_rates_loading": "正在從國服市集取匯率…",
     "tencent_rates_result": "{0}：1 神聖石 ≈ {1}（在線掛單中位數）",
-    "tencent_rates_none": "通貨兌換裡暫時沒有可用的掛單。",
+    "tencent_rates_none": "國服市集上沒有可用來換算的掛單（國服市集沒有通貨兌換），匯率請在設置裡手動填寫。",
     "tencent_currency_exalted": "崇高石",
     "tencent_currency_chaos": "混沌石"
   },

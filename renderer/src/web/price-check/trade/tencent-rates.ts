@@ -7,63 +7,102 @@ import {
 } from "./common";
 import { tradeLeaguePath, withTencentLogin } from "./tencent";
 
-// Currency rates on the Tencent trade site, from its currency exchange
-// (`/api/trade2/exchange`, login required). For M08b, which uses rates the
-// user typed in until this is wired up; those stay the fallback.
+// Currency rates on the Tencent trade site, for M08b (which uses rates the
+// user typed in until this is wired up; those stay the fallback).
 //
-// For each currency one exchange search: offers that pay `base` for it.
-// The rate is the median over the first offers (the cheapest), in `base`
-// per 1 unit of the currency. Currency ids are the trade ids shared by both
-// sites (`data/trade/currency.json`), e.g. "divine", "exalted", "chaos".
+// The Tencent PoE2 site has no currency exchange (`/api/trade2/exchange`
+// answers 404, the exchange page redirects to item search), so rates come
+// from the item search: listings of one unit of `base` (default Divine Orb)
+// priced in the currency, cheapest first. A currency's value is 1 / median
+// price over the first single-unit listings, in `base` per unit. Listings
+// of stacks are skipped: their price may be for the stack or for one unit.
+// Two requests per currency (search + fetch), under the trade rate limits.
+// Only currencies cheaper than `base` can be priced this way.
 
 export interface TencentRate {
   currency: string;
   // How many `base` one unit of `currency` is worth.
   value: number;
-  // Offers the median was taken from.
+  // Listings the median was taken from.
   offers: number;
 }
 
-const OFFERS_USED = 10;
+const LISTINGS_USED = 10;
 
-interface ExchangeResult {
-  result: Record<
-    string,
-    {
-      listing: {
-        offers: Array<{
-          exchange: { currency: string; amount: number };
-          item: { currency: string; amount: number; stock: number };
-        }>;
-      };
-    }
-  >;
+let names: Record<string, string> | null = null;
+
+// Simplified Chinese item names of currencies by trade id (the search wants
+// the name), from PoE2-Build-Assistant `data/trade/currency.json`.
+async function currencyName(id: string) {
+  names ??= (await (
+    await fetch(`${import.meta.env.BASE_URL}data/cmn-Hans/trade-currency.json`)
+  ).json()) as Record<string, string>;
+  const name = names[id];
+  if (!name) throw new Error(`未知通货：${id}`);
+  return name;
 }
 
-async function exchange(leagueId: string, have: string, want: string) {
+async function api<T>(
+  limits: Set<RateLimiter>,
+  url: string,
+  init?: RequestInit,
+): Promise<T> {
   const response = await withTencentLogin(async () => {
-    await RateLimiter.waitMulti(RATE_LIMIT_RULES.EXCHANGE);
-    const res = await Host.proxy(
-      `poe.game.qq.com/api/trade2/exchange/${tradeLeaguePath(leagueId)}`,
-      {
-        method: "POST",
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          engine: "new",
-          query: { status: { option: "online" }, have: [have], want: [want] },
-          sort: { have: "asc" },
-        }),
-      },
-    );
-    adjustRateLimits(RATE_LIMIT_RULES.EXCHANGE, res.headers);
+    await RateLimiter.waitMulti(limits);
+    const res = await Host.proxy(`poe.game.qq.com/api/trade2/${url}`, init);
+    adjustRateLimits(limits, res.headers);
     return res;
   });
-  const data = (await response.json()) as TradeResponse<ExchangeResult>;
+  const data = (await response.json()) as TradeResponse<T>;
   if (data.error) throw new Error(data.error.message);
   return data;
+}
+
+async function unitPrices(
+  leagueId: string,
+  baseName: string,
+  currency: string,
+) {
+  const search = await api<{ id: string; result: string[] }>(
+    RATE_LIMIT_RULES.SEARCH,
+    `search/${tradeLeaguePath(leagueId)}`,
+    {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: {
+          status: { option: "online" },
+          type: baseName,
+          filters: {
+            trade_filters: { filters: { price: { option: currency } } },
+          },
+        },
+        sort: { price: "asc" },
+      }),
+    },
+  );
+  if (!search.result.length) return [];
+  const fetched = await api<{
+    result: Array<{
+      listing: { price?: { amount: number; currency: string } };
+      item: { stackSize?: number };
+    } | null>;
+  }>(
+    RATE_LIMIT_RULES.FETCH,
+    `fetch/${search.result.slice(0, LISTINGS_USED).join(",")}?query=${search.id}&realm=poe2`,
+  );
+  return fetched.result
+    .filter((r) => r != null)
+    .filter(
+      (r) =>
+        (r.item.stackSize ?? 1) === 1 &&
+        r.listing.price?.currency === currency &&
+        r.listing.price.amount > 0,
+    )
+    .map((r) => r.listing.price!.amount);
 }
 
 function median(values: number[]) {
@@ -72,31 +111,27 @@ function median(values: number[]) {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-// Requests run one after another under the exchange rate limit; a currency
-// nobody is selling for `base` right now is left out of the result.
+// Currency ids are the trade ids shared by both sites, e.g. "exalted",
+// "chaos". A currency without single-unit listings right now is left out.
 export async function fetchTencentRates(
   leagueId: string,
   currencies: string[],
   base = "divine",
 ): Promise<TencentRate[]> {
+  const baseName = await currencyName(base);
   const rates: TencentRate[] = [];
   for (const currency of currencies) {
     if (currency === base) {
       rates.push({ currency, value: 1, offers: 0 });
       continue;
     }
-    const data = await exchange(leagueId, base, currency);
-    const perUnit: number[] = [];
-    for (const { listing } of Object.values(data.result)) {
-      for (const offer of listing.offers) {
-        if (offer.exchange.currency === base && offer.item.amount > 0) {
-          perUnit.push(offer.exchange.amount / offer.item.amount);
-        }
-      }
-      if (perUnit.length >= OFFERS_USED) break;
-    }
-    if (perUnit.length) {
-      rates.push({ currency, value: median(perUnit), offers: perUnit.length });
+    const prices = await unitPrices(leagueId, baseName, currency);
+    if (prices.length) {
+      rates.push({
+        currency,
+        value: 1 / median(prices),
+        offers: prices.length,
+      });
     }
   }
   return rates;

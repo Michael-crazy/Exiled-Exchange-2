@@ -418,9 +418,9 @@
     "tencent_logged_out": "Logged out of Tencent trade.",
     "tencent_login_required": "Not logged in to Tencent trade, or the login expired.",
     "tencent_rates": "Get Tencent rates",
-    "tencent_rates_loading": "Getting rates from the Tencent currency exchange…",
+    "tencent_rates_loading": "Getting rates from the Tencent trade site…",
     "tencent_rates_result": "{0}: 1 Divine ≈ {1} (median of online offers)",
-    "tencent_rates_none": "No usable offers in the currency exchange right now.",
+    "tencent_rates_none": "No listings on the Tencent trade site to derive rates from (it has no currency exchange); enter rates by hand.",
     "tencent_currency_exalted": "Exalted",
     "tencent_currency_chaos": "Chaos"
   },
