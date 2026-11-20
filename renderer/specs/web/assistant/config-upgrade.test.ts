@@ -50,11 +50,15 @@ describe("config upgrade", () => {
     );
     vi.mocked(Host.sendEvent).mockClear();
 
-    const { initConfig, defaultConfig } =
+    const { initConfig, saveUpgradedConfig, defaultConfig } =
       await vi.importActual<typeof import("@/web/Config")>("@/web/Config");
     // updateConfig sets the root font size; stub after Vue is imported.
     vi.stubGlobal("document", { documentElement: { style: {} } });
     await initConfig();
+    // Nothing is sent before the host connection is open (Host.init).
+    expect(Host.sendEvent).not.toHaveBeenCalled();
+    saveUpgradedConfig();
+    saveUpgradedConfig(); // only once
 
     const saves = vi
       .mocked(Host.sendEvent)

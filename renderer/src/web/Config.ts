@@ -13,6 +13,7 @@ import { applyPobSettings } from "./pob-settings";
 
 const _config = shallowRef<Config | null>(null);
 let _lastSavedConfig: Config | null = null;
+let _upgradedOnLoad = false;
 
 export function AppConfig(): Config;
 export function AppConfig<T extends widget.Widget>(type: string): T | undefined;
@@ -105,9 +106,15 @@ export async function initConfig() {
 
   const loadedVersion = config.configVersion;
   updateConfig(upgradeConfig(config));
-  if (AppConfig().configVersion !== loadedVersion) {
-    // Write the upgraded config back right away: other programs (the PoB
-    // settings group) read config.json and must see the new keys.
+  _upgradedOnLoad = AppConfig().configVersion !== loadedVersion;
+}
+
+// Writes the config back if initConfig upgraded it: other programs (the PoB
+// settings group) read config.json and must see the new keys. Call once the
+// host connection is open (after Host.init); initConfig runs before it.
+export function saveUpgradedConfig() {
+  if (_upgradedOnLoad) {
+    _upgradedOnLoad = false;
     saveConfig();
   }
 }
