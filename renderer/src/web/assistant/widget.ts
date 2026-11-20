@@ -15,4 +15,7 @@ export interface AssistantEvalWidget extends Widget {
   tencentExaltedPerDivine: number;
   tencentChaosPerDivine: number;
   tencentDivinePerMirror: number;
+  // M09a: answer the trade-site browser extension on 127.0.0.1:<port>.
+  webPreview: boolean;
+  webPreviewPort: number;
 }

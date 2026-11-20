@@ -85,6 +85,8 @@ describe("config upgrade", () => {
       tencentExaltedPerDivine: 0,
       tencentChaosPerDivine: 0,
       tencentDivinePerMirror: 0,
+      webPreview: true,
+      webPreviewPort: 37428,
     });
     vi.unstubAllGlobals();
   });

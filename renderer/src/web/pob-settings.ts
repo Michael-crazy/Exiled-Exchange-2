@@ -1,5 +1,6 @@
 import { KeyToCode, isModKey } from "@ipc/KeyToCode";
 import { BASE_CURRENCIES } from "@/web/assistant/price-value";
+import { isWebPreviewPort } from "@/web/assistant/web-preview";
 
 // Applies settings sent from Path of Building's Options window (PoE2
 // assistant U03, see main/src/host-files/PobSettingsBridge.ts). Each entry is
@@ -36,6 +37,8 @@ const RULES: Record<string, (value: unknown) => boolean> = {
   "widget:assistant-eval.tencentExaltedPerDivine": isRate,
   "widget:assistant-eval.tencentChaosPerDivine": isRate,
   "widget:assistant-eval.tencentDivinePerMirror": isRate,
+  // M09a: trade-site browser extension
+  "widget:assistant-eval.webPreviewPort": isWebPreviewPort,
 };
 
 // Exchange rate typed in PoB; 0 = not filled in.

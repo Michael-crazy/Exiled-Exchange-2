@@ -84,6 +84,8 @@ export default {
         tencentExaltedPerDivine: 0,
         tencentChaosPerDivine: 0,
         tencentDivinePerMirror: 0,
+        webPreview: true,
+        webPreviewPort: 37428,
       };
     },
   } satisfies WidgetSpec,
@@ -91,7 +93,7 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, ref } from "vue";
+import { computed, inject, onBeforeUnmount, ref, watch } from "vue";
 import { hotkeyToString } from "@ipc/KeyToCode";
 import { Host } from "@/web/background/IPC";
 import { AppConfig } from "@/web/Config";
@@ -116,6 +118,7 @@ import {
   entryValue,
   tencentRates,
 } from "./price-value";
+import { WEB_PREVIEW_RESEND_MS, webPreviewParams } from "./web-preview";
 
 const props = defineProps<{
   config: AssistantEvalWidget;
@@ -207,18 +210,68 @@ const base = computed(() =>
 
 const ninja = usePoeninja();
 
-// Value of one unit in Divine Orbs.
-const rates = computed<DivineRates>(() => {
-  if (realm.value === "pc-tencent") return tencentRates(props.config);
+// poe.ninja's values in Divine Orbs; null until its prices have loaded.
+const ninjaRates = computed<DivineRates | null>(() => {
   // poe.ninja's database is not reactive; its exchange rate changes on load.
-  if (ninja.xchgRate.value === undefined)
-    return (id) => (id === "divine" ? 1 : undefined);
+  if (ninja.xchgRate.value === undefined) return null;
   return (id) => {
     if (id === "divine") return 1;
     const name = TRADE_TAG_TO_REF.get(id) ?? currencyById(id)?.en;
     if (!name) return undefined;
     return ninja.findPriceByQuery({ ns: "ITEM", name })?.primaryValue;
   };
+});
+
+// Value of one unit in Divine Orbs.
+const rates = computed<DivineRates>(() => {
+  if (realm.value === "pc-tencent") return tencentRates(props.config);
+  return ninjaRates.value ?? ((id) => (id === "divine" ? 1 : undefined));
+});
+
+// ---- M09a: the trade-site browser extension ----
+// The backend listens for it while the setting is on; it needs the port and,
+// for value for money, poe.ninja's rates (the international trade site).
+let webPreviewSent = "";
+let webPreviewStarted = false;
+function syncWebPreview(again = false) {
+  const enabled = props.config.webPreview;
+  if (!enabled && !webPreviewStarted) return; // nothing to stop
+  if (enabled) ninja.queuePricesFetch();
+  const params = webPreviewParams(props.config, ninjaRates.value);
+  const text = JSON.stringify(params);
+  if (!again && text === webPreviewSent) return;
+  try {
+    Host.sendEvent({
+      name: "CLIENT->MAIN::assistant-request",
+      payload: {
+        id: `web-preview-${++requestSeq}`,
+        method: "web-preview",
+        params,
+      },
+    });
+    webPreviewSent = text;
+    webPreviewStarted = enabled;
+  } catch {
+    // Host connection not open yet: the next round sends it.
+  }
+}
+watch(
+  () => [
+    props.config.webPreview,
+    props.config.webPreviewPort,
+    props.config.valueCurrency,
+    ninja.xchgRate.value,
+  ],
+  () => syncWebPreview(),
+);
+const webPreviewTimer = setInterval(
+  () => syncWebPreview(true),
+  WEB_PREVIEW_RESEND_MS,
+);
+const webPreviewFirst = setTimeout(() => syncWebPreview(true), 3000);
+onBeforeUnmount(() => {
+  clearInterval(webPreviewTimer);
+  clearTimeout(webPreviewFirst);
 });
 
 function valueOf(entry: Entry) {

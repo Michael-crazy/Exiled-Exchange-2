@@ -190,7 +190,7 @@ export interface Config {
 }
 
 export const defaultConfig = (): Config => ({
-  configVersion: 39,
+  configVersion: 40,
   overlayKey: "Shift + Space",
   overlayBackground: "rgba(129, 139, 149, 0.15)",
   overlayBackgroundClose: true,
@@ -771,6 +771,19 @@ function upgradeConfig(_config: Config): Config {
     }
 
     config.configVersion = 39;
+  }
+
+  if (config.configVersion < 40) {
+    // PoE2 assistant: the trade-site browser extension (M09a)
+    const assistantEval = config.widgets.find(
+      (w) => w.wmType === "assistant-eval",
+    ) as AssistantEvalWidget | undefined;
+    if (assistantEval) {
+      assistantEval.webPreview ??= true;
+      assistantEval.webPreviewPort ??= 37428;
+    }
+
+    config.configVersion = 40;
   }
   /* eslint-enable */
 

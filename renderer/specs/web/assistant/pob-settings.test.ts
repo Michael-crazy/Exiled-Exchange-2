@@ -17,6 +17,8 @@ function config() {
         valueCurrency: "divine",
         tencentExaltedPerDivine: 0,
         tencentChaosPerDivine: 0,
+        webPreview: true,
+        webPreviewPort: 37428,
       },
     ],
   };
@@ -115,5 +117,27 @@ describe("settings from Path of Building", () => {
     expect(
       applyPobSettings(cfg, { "widget:assistant-eval.valueCurrency": "apple" }),
     ).toEqual({ "widget:assistant-eval.valueCurrency": "invalid value" });
+  });
+  it("checks the web preview settings (M09a)", () => {
+    const cfg = config();
+    const rejected = applyPobSettings(cfg, {
+      "widget:assistant-eval.webPreview": false,
+      "widget:assistant-eval.webPreviewPort": 40000,
+    });
+    expect(rejected).toEqual({});
+    expect(cfg.widgets[1]).toMatchObject({
+      webPreview: false,
+      webPreviewPort: 40000,
+    });
+    expect(
+      applyPobSettings(cfg, {
+        "widget:assistant-eval.webPreview": "yes",
+        "widget:assistant-eval.webPreviewPort": 80,
+      }),
+    ).toEqual({
+      "widget:assistant-eval.webPreview": "invalid value",
+      "widget:assistant-eval.webPreviewPort": "invalid value",
+    });
+    expect(cfg.widgets[1].webPreviewPort).toBe(40000);
   });
 });
