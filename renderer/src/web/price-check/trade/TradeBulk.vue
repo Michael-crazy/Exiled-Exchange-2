@@ -150,8 +150,12 @@
   </div>
   <ui-error-box class="mb-4" v-else>
     <template #name>{{ t(":error") }}</template>
-    <p>Error: {{ error }}</p>
+    <p v-if="loginRequired">{{ t(":tencent_login_required") }}</p>
+    <p v-else>Error: {{ error }}</p>
     <template #actions>
+      <button v-if="loginRequired" class="btn" @click="login">
+        {{ t(":tencent_login") }}
+      </button>
       <button class="btn" @click="execSearch">{{ t("Retry") }}</button>
       <button class="btn" @click="openTradeLink">{{ t("Browser") }}</button>
     </template>
@@ -180,6 +184,7 @@ import OnlineFilter from "./OnlineFilter.vue";
 import TradeLinks from "./TradeLinks.vue";
 import { Host } from "@/web/background/IPC";
 import { useBulkApi } from "./bulk-api";
+import { TENCENT_LOGIN_REQUIRED, openTencentLogin } from "./tencent";
 
 const slowdown = artificialSlowdown(900);
 
@@ -271,6 +276,12 @@ export default defineComponent({
       selectedCurr,
       execSearch: () => {
         search(props.item, props.filters);
+      },
+      loginRequired: computed(() => error.value === TENCENT_LOGIN_REQUIRED),
+      login: () => {
+        openTencentLogin().then(() => {
+          search(props.item, props.filters);
+        });
       },
       showSeller: computed(() => widget.value.showSeller),
       makeTradeLink,

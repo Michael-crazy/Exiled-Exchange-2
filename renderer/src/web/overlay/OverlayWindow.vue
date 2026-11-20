@@ -89,6 +89,10 @@ export default defineComponent({
   setup() {
     usePoeninja();
     useLeagues().load();
+    watch(
+      () => AppConfig().realm,
+      () => useLeagues().load(),
+    );
     const { handleLine } = useClientLog();
 
     const active = shallowRef(!Host.isElectron);

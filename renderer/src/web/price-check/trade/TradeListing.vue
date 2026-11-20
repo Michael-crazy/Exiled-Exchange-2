@@ -115,11 +115,15 @@
   </div>
   <ui-error-box v-else>
     <template #name>{{ t(":error") }}</template>
-    <p>Error: {{ error }}</p>
+    <p v-if="loginRequired">{{ t(":tencent_login_required") }}</p>
+    <p v-else>Error: {{ error }}</p>
     <div v-if="error && errorFix" class="border p-1 rounded">
       {{ errorFix }}
     </div>
     <template #actions>
+      <button v-if="loginRequired" class="btn" @click="login">
+        {{ t(":tencent_login") }}
+      </button>
       <button class="btn" @click="execSearch">{{ t("Retry") }}</button>
       <button class="btn" @click="openTradeLink">{{ t("Browser") }}</button>
     </template>
@@ -152,6 +156,7 @@ import OnlineFilter from "./OnlineFilter.vue";
 import TradeLinks from "./TradeLinks.vue";
 import TradeItem from "./TradeItem.vue";
 import { useTradeApi } from "./trade-api";
+import { TENCENT_LOGIN_REQUIRED, openTencentLogin } from "./tencent";
 import { GEM, GRANTS_REAL_SKILL } from "@/parser/meta";
 import ItemSumPrice from "@/web/ui/ItemSumPrice.vue";
 import ExtractionValue from "./ExtractionValue.vue";
@@ -249,6 +254,12 @@ export default defineComponent({
       }),
       execSearch: () => {
         search(props.filters, props.stats, props.item);
+      },
+      loginRequired: computed(() => error.value === TENCENT_LOGIN_REQUIRED),
+      login: () => {
+        openTencentLogin().then(() => {
+          search(props.filters, props.stats, props.item);
+        });
       },
       execFilterExaltDivine: () => {
         props.filters.trade.currency = "exalted_divine";

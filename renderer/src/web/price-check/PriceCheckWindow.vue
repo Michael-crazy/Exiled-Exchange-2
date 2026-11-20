@@ -64,6 +64,9 @@
           <template #name>无法查价</template>
           <p>{{ noItemMessage }}</p>
         </ui-error-box>
+        <div v-else-if="translating" class="m-4 text-gray-400">
+          {{ t("app.tencent_translating") }}
+        </div>
         <template v-else-if="item?.isErr()">
           <ui-error-box class="m-4">
             <template #name>{{ t(item.error.name) }}</template>
@@ -168,6 +171,7 @@ import {
 import { loadUltraLateItems } from "@/assets/data";
 import ReloadTradeData from "./fallback/ReloadTradeData.vue";
 import { noItemText } from "../assistant/no-item-text";
+import { needsTranslation, translateTencentItem } from "./tencent-item";
 
 type ParseError = {
   name: string;
@@ -263,6 +267,8 @@ export default defineComponent({
     const advancedCheck = shallowRef(false);
     const checkPosition = shallowRef({ x: 1, y: 1 });
     const noItemMessage = shallowRef<string | null>(null);
+    const translating = shallowRef(false);
+    let translateRequest = 0;
 
     // Close the window when the mouse leaves it (hold-key price check).
     function trackPriceArea(
@@ -304,6 +310,8 @@ export default defineComponent({
       wm.show(props.config.wmId);
       checkPosition.value = e.position;
       item.value = null;
+      translating.value = false;
+      translateRequest += 1;
       noItemMessage.value = noItemText(e.reason).message;
     });
 
@@ -318,16 +326,34 @@ export default defineComponent({
       checkPosition.value = e.position;
       advancedCheck.value = e.focusOverlay;
       performance.mark("price-check-start-handling-item");
-      item.value = handleItemPaste({
-        clipboard: e.clipboard,
-        item: e.item as ParsedItem,
-      });
+      const request = ++translateRequest;
+      translating.value = false;
+      if (!e.item && needsTranslation(e.clipboard)) {
+        // Tencent: Simplified Chinese → English game text (P05) first.
+        item.value = null;
+        translating.value = true;
+        translateTencentItem(e.clipboard).then((translated) => {
+          if (request !== translateRequest) return;
+          translating.value = false;
+          if ("error" in translated) {
+            noItemMessage.value = translated.error;
+          } else {
+            showItem(translated.text, undefined);
+          }
+        });
+        return;
+      }
+      showItem(e.clipboard, e.item as ParsedItem);
+    });
+
+    function showItem(clipboard: string, parsed: ParsedItem | undefined) {
+      item.value = handleItemPaste({ clipboard, item: parsed as ParsedItem });
 
       if (item.value.isOk()) {
         queuePricesFetch();
       }
       performance.mark("price-check-event-end");
-    });
+    }
 
     function handleItemPaste(e: { clipboard: string; item: ParsedItem }) {
       const newItem = (e.item ? ok(e.item) : parseClipboard(e.clipboard))
@@ -455,6 +481,7 @@ export default defineComponent({
     return {
       t,
       noItemMessage,
+      translating,
       clickPosition,
       isBrowserShown,
       iframeEl,

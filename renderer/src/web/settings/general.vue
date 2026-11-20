@@ -6,7 +6,11 @@
     <div class="italic text-gray-500 mb-4">
       {{ t(":follow_game_hint") }}
     </div>
-    <div class="mb-4">
+    <div class="mb-4" v-if="realm === 'pc-tencent'">
+      <div class="flex-1 mb-1">{{ t(":language") }}</div>
+      <div class="italic text-gray-500">{{ t(":tencent_language_hint") }}</div>
+    </div>
+    <div class="mb-4" v-else>
       <div class="flex-1 mb-1">{{ t(":language") }}</div>
       <select v-model="language" class="p-1 rounded bg-gray-700 w-24">
         <option value="en">English</option>
@@ -20,14 +24,14 @@
         <option value="fr">Français</option>
       </select>
     </div>
-    <div class="mb-4" v-if="language !== 'en'">
+    <div class="mb-4" v-if="language !== 'en' && realm !== 'pc-tencent'">
       <div class="flex-1 mb-1">{{ t(":preferred_trade_site") }}</div>
       <select v-model="preferredTradeSite" class="p-1 rounded bg-gray-700 w-24">
         <option value="default">{{ tradeUrl }}</option>
         <option value="www">www.pathofexile.com</option>
       </select>
     </div>
-    <div class="mb-4" v-if="language === 'cmn-Hant'">
+    <div class="mb-4" v-if="language === 'cmn-Hant' || realm === 'pc-tencent'">
       <div class="flex-1 mb-1">{{ t("realm") }}</div>
       <div class="flex gap-x-4">
         <ui-radio v-model="realm" value="pc-ggg">{{
@@ -39,6 +43,23 @@
         <ui-radio v-model="realm" value="pc-tencent">{{
           t("realm_tencent")
         }}</ui-radio>
+      </div>
+    </div>
+    <div class="mb-4" v-if="realm === 'pc-tencent'">
+      <div class="flex-1 mb-1">{{ t(":tencent_login") }}</div>
+      <div class="flex gap-x-2 mb-1">
+        <button class="btn" @click="tencentLogin">
+          {{ t(":tencent_login_open") }}
+        </button>
+        <button class="btn" @click="tencentLogout">
+          {{ t(":tencent_logout") }}
+        </button>
+        <button class="btn" @click="tencentRates">
+          {{ t(":tencent_rates") }}
+        </button>
+      </div>
+      <div class="italic text-gray-500">
+        {{ tencentLoginState || t(":tencent_login_hint") }}
       </div>
     </div>
     <div class="mb-4">
@@ -138,6 +159,13 @@ import UiRadio from "@/web/ui/UiRadio.vue";
 import UiCheckbox from "@/web/ui/UiCheckbox.vue";
 import { configModelValue, configProp } from "./utils";
 import { AppConfig } from "@/web/Config";
+import {
+  openTencentLogin,
+  logoutTencent,
+  TENCENT_LOGIN_REQUIRED,
+} from "@/web/price-check/trade/tencent";
+import { fetchTencentRates } from "@/web/price-check/trade/tencent-rates";
+import { useLeagues } from "@/web/background/Leagues";
 
 export default defineComponent({
   name: "settings.general",
@@ -145,6 +173,7 @@ export default defineComponent({
   props: configProp(),
   setup(props) {
     const { t } = useI18nNs("settings");
+    const tencentLoginState = ref("");
     const libraryAlpha = ref(
       AppConfig().enableAlphas && AppConfig().alphas.includes("library"),
     );
@@ -221,7 +250,55 @@ export default defineComponent({
         },
       }),
 
-      realm: configModelValue(() => props.config, "realm"),
+      realm: computed<typeof props.config.realm>({
+        get() {
+          return props.config.realm;
+        },
+        set(value) {
+          // Tencent parses P05's English translation (see uiLanguage).
+          if (value === "pc-tencent") {
+            props.config.language = "en";
+          } else if (props.config.realm === "pc-tencent") {
+            props.config.language = "cmn-Hant";
+          }
+          props.config.realm = value;
+        },
+      }),
+      tencentLoginState,
+      tencentLogin() {
+        tencentLoginState.value = "";
+        openTencentLogin();
+      },
+      async tencentLogout() {
+        await logoutTencent();
+        tencentLoginState.value = t(":tencent_logged_out");
+      },
+      // Also shows whether the login works: the exchange needs it.
+      async tencentRates() {
+        const league = useLeagues().selectedId.value;
+        if (!league) return;
+        tencentLoginState.value = t(":tencent_rates_loading");
+        try {
+          const rates = await fetchTencentRates(league, ["exalted", "chaos"]);
+          tencentLoginState.value = rates.length
+            ? t(":tencent_rates_result", [
+                league,
+                rates
+                  .map(
+                    (rate) =>
+                      `${Math.round(1 / rate.value)} ${t(`:tencent_currency_${rate.currency}`)}`,
+                  )
+                  .join(" / "),
+              ])
+            : t(":tencent_rates_none");
+        } catch (err) {
+          const message = (err as Error).message;
+          tencentLoginState.value =
+            message === TENCENT_LOGIN_REQUIRED
+              ? t(":tencent_login_required")
+              : message;
+        }
+      },
       followGame: configModelValue(() => props.config, "followGame"),
       restoreClipboard: configModelValue(
         () => props.config,

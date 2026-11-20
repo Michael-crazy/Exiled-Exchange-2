@@ -1,4 +1,5 @@
 import { ItemCategory, ParsedItem, ItemRarity } from "@/parser";
+import { fetchRealmParam, tradeLeaguePath, withTencentLogin } from "./tencent";
 import {
   ItemFilters,
   StatFilter,
@@ -1266,20 +1267,23 @@ export async function requestTradeResultList(
       { count: 1, limiters: RATE_LIMIT_RULES.FETCH },
     ]);
 
-    await RateLimiter.waitMulti(RATE_LIMIT_RULES.SEARCH);
+    const response = await withTencentLogin(async () => {
+      await RateLimiter.waitMulti(RATE_LIMIT_RULES.SEARCH);
 
-    const response = await Host.proxy(
-      `${getTradeEndpoint()}/api/trade2/search/${leagueId}`,
-      {
-        method: "POST",
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
+      const res = await Host.proxy(
+        `${getTradeEndpoint()}/api/trade2/search/${tradeLeaguePath(leagueId)}`,
+        {
+          method: "POST",
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
         },
-        body: JSON.stringify(body),
-      },
-    );
-    adjustRateLimits(RATE_LIMIT_RULES.SEARCH, response.headers);
+      );
+      adjustRateLimits(RATE_LIMIT_RULES.SEARCH, res.headers);
+      return res;
+    });
 
     const _data = (await response.json()) as TradeResponse<SearchResult>;
     if (_data.error) {
@@ -1310,12 +1314,15 @@ export async function requestResults(
   let data = cache.get<FetchResult[]>(resultIds);
 
   if (!data) {
-    await RateLimiter.waitMulti(RATE_LIMIT_RULES.FETCH);
+    const response = await withTencentLogin(async () => {
+      await RateLimiter.waitMulti(RATE_LIMIT_RULES.FETCH);
 
-    const response = await Host.proxy(
-      `${getTradeEndpoint()}/api/trade2/fetch/${resultIds.join(",")}?query=${queryId}`,
-    );
-    adjustRateLimits(RATE_LIMIT_RULES.FETCH, response.headers);
+      const res = await Host.proxy(
+        `${getTradeEndpoint()}/api/trade2/fetch/${resultIds.join(",")}?query=${queryId}${fetchRealmParam()}`,
+      );
+      adjustRateLimits(RATE_LIMIT_RULES.FETCH, res.headers);
+      return res;
+    });
 
     const _data = (await response.json()) as TradeResponse<{
       result: Array<FetchResult | null>;

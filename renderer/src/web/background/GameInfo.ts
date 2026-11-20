@@ -13,9 +13,10 @@ export function initGameInfo() {
     if (!game || !config.followGame) return;
 
     config.realm = game.realm;
-    // EE2 has no Simplified Chinese data. On Tencent its UI and parser use
-    // Traditional Chinese; the backend gets the real client language.
-    const language = game.realm === "pc-tencent" ? "cmn-Hant" : game.language;
+    // EE2 has no Simplified Chinese data. On Tencent the price check parses
+    // P05's English translation of the item and the interface is Simplified
+    // Chinese (uiLanguage); the backend gets the real client language.
+    const language = game.realm === "pc-tencent" ? "en" : game.language;
     if (language) {
       config.language = language as Config["language"];
     }

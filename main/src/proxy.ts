@@ -7,6 +7,7 @@ const PROXY_HOSTS = [
   { host: "ru.pathofexile.com", official: true },
   { host: "pathofexile.tw", official: true },
   { host: "poe.kakaogames.com", official: true },
+  { host: "poe.game.qq.com", official: true },
   { host: "jp.pathofexile.com", official: true },
   { host: "de.pathofexile.com", official: true },
   { host: "es.pathofexile.com", official: true },

@@ -63,7 +63,9 @@ export const useLeagues = createGlobalState(() => {
         (league) => league.id === selectedId.value,
       );
       if (!leagueIsAlive && !isPrivateLeague(selectedId.value ?? "")) {
-        if (tradeLeagues.value.length > 2) {
+        if (AppConfig().realm === "pc-tencent") {
+          selectedId.value = defaultTencentLeague(tradeLeagues.value);
+        } else if (tradeLeagues.value.length > 2) {
           const TMP_CHALLENGE = 2;
           selectedId.value = tradeLeagues.value[TMP_CHALLENGE].id;
         } else {
@@ -87,6 +89,15 @@ export const useLeagues = createGlobalState(() => {
     load,
   };
 });
+
+// Tencent default (M02): the newest league that is neither expert (hardcore,
+// "（专家）") nor permanent ("永久"); the site lists the newest first.
+function defaultTencentLeague(leagues: League[]) {
+  const league = leagues.find(
+    ({ id }) => !id.endsWith("（专家）") && !id.startsWith("永久"),
+  );
+  return (league ?? leagues[0]).id;
+}
 
 function isPrivateLeague(id: string) {
   if (id.includes("Ruthless")) {

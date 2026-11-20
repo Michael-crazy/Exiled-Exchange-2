@@ -18,6 +18,7 @@ import { installExtension, VUEJS_DEVTOOLS } from "electron-devtools-installer";
 import { FileWriter } from "./host-files/FileWriter";
 import { GameDetector } from "./host-files/GameDetector";
 import { AssistantBackend } from "./backend/AssistantBackend";
+import { TencentLogin } from "./TencentLogin";
 import { followPathOfBuilding } from "./PathOfBuildingParent";
 import { PobSettingsBridge } from "./host-files/PobSettingsBridge";
 import type { HostConfig } from "../../ipc/types";
@@ -82,6 +83,8 @@ let tray: AppTray;
     followPathOfBuilding(logger);
     // eslint-disable-next-line no-new
     new PobSettingsBridge(eventPipe, logger);
+    // eslint-disable-next-line no-new
+    new TencentLogin(eventPipe, logger);
 
     if (process.env.VITE_DEV_SERVER_URL) {
       try {

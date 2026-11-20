@@ -115,6 +115,8 @@ export type IpcEvent =
   | IpcGameDetected
   | IpcAssistantRequest
   | IpcAssistantResponse
+  | IpcTencentLogin
+  | IpcTencentLoginState
   | IpcPobSettings
   | IpcPobSettingsApplied;
 
@@ -306,6 +308,18 @@ type IpcAssistantResponse = Event<
     result?: unknown;
     error?: { code: string; message: string };
   }
+>;
+
+// Tencent trade site login (M02): open the login window, reload the trade
+// page in the background so the site renews an expired session, or log out.
+type IpcTencentLogin = Event<
+  "CLIENT->MAIN::tencent-login",
+  { action: "open" | "refresh" | "logout" }
+>;
+
+type IpcTencentLoginState = Event<
+  "MAIN->CLIENT::tencent-login",
+  { state: "closed" | "refreshed" | "logged-out" }
 >;
 
 type IpcUpdaterState = Event<"MAIN->CLIENT::updater-state", UpdateInfo>;

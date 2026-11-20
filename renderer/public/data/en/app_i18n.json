@@ -20,7 +20,8 @@
     "release_notes": "Release notes",
     "report_bug": "Report a bug on GitHub",
     "quit": "Quit",
-    "deprecated": "This feature is deprecated and will be removed in update {0}"
+    "deprecated": "This feature is deprecated and will be removed in update {0}",
+    "tencent_translating": "Translating the Tencent item to English…"
   },
   "map.mods.heist": "heist",
   "map.mods.uber": "T17",
@@ -349,7 +350,9 @@
     "likely_price_fixed": "Mostly non-standard currency: ",
     "filter_exalt_divine": "Filter by Exalt/Divine",
     "highest_volume": "Highest volume:",
-    "added_augments": "Added Augment Cost:"
+    "added_augments": "Added Augment Cost:",
+    "tencent_login": "Log in to Tencent trade",
+    "tencent_login_required": "The Tencent trade site needs a login (not logged in, or the login expired). Click \"Log in to Tencent trade\", log in in the window that opens, then close it; the search runs again."
   },
   "settings": {
     "follow_game": "Follow the running game",
@@ -406,7 +409,20 @@
     "read_client_log": "Allow reading of Client.txt file",
     "client_log_explain": "Client.txt log file contains debugging info and chat logs. This is used to detect zone changes and player level ups.",
     "hide_overlay_on_blur": "Fully hide overlay when it loses focus instead of making it transparent.",
-    "hide_overlay_on_blur_hint": "This may gain performance improvements on some systems, but may induce flickering."
+    "hide_overlay_on_blur_hint": "This may gain performance improvements on some systems, but may induce flickering.",
+    "tencent_language_hint": "Tencent: Simplified Chinese interface; items are translated to English for the price check.",
+    "tencent_login": "Tencent trade login",
+    "tencent_login_open": "Log in to Tencent trade",
+    "tencent_logout": "Log out of Tencent trade",
+    "tencent_login_hint": "The Tencent price check needs a trade site login. It is kept on this computer; the price check asks again when it expires.",
+    "tencent_logged_out": "Logged out of Tencent trade.",
+    "tencent_login_required": "Not logged in to Tencent trade, or the login expired.",
+    "tencent_rates": "Get Tencent rates",
+    "tencent_rates_loading": "Getting rates from the Tencent currency exchange…",
+    "tencent_rates_result": "{0}: 1 Divine ≈ {1} (median of online offers)",
+    "tencent_rates_none": "No usable offers in the currency exchange right now.",
+    "tencent_currency_exalted": "Exalted",
+    "tencent_currency_chaos": "Chaos"
   },
   "price_check": {
     "name": "Price check",

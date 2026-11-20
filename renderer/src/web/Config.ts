@@ -121,6 +121,9 @@ export function saveUpgradedConfig() {
 
 export function poeWebApi() {
   const { realm, preferredTradeSite, language } = AppConfig();
+  if (realm === "pc-tencent") {
+    return "poe.game.qq.com";
+  }
   if (preferredTradeSite === "www") {
     return "www.pathofexile.com";
   }
@@ -144,6 +147,14 @@ export function poeWebApi() {
     case "fr":
       return "fr.pathofexile.com";
   }
+}
+
+// Interface language. EE2 has no Simplified Chinese game data: on Tencent it
+// parses the item after P05 translated it to English (`language` is "en"),
+// while the interface uses the Simplified Chinese translation (M03).
+export function uiLanguage() {
+  const { realm, language } = AppConfig();
+  return realm === "pc-tencent" ? "cmn-Hans" : language;
 }
 
 export enum TipsFrequency {

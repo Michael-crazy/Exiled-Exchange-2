@@ -145,6 +145,8 @@
 </template>
 
 <script lang="ts">
+import { isTencent } from "../trade/tencent";
+import { tencentStatText } from "./tencent-stats";
 import { defineComponent, PropType, computed, ref, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import UiPopover from "@/web/ui/Popover.vue";
@@ -294,6 +296,10 @@ export default defineComponent({
           props.filter.tradeId[0],
         )
       ) {
+        // Tencent shows the trade site's own Simplified Chinese text (M02).
+        if (isTencent()) {
+          return tencentStatText(props.filter.tradeId[0]) ?? props.filter.text;
+        }
         return props.filter.text;
       } else {
         return t(props.filter.tradeId[0], ["#", "#"]);

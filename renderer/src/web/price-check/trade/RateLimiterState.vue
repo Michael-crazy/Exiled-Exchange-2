@@ -4,7 +4,7 @@
     @click="showRateLimitState = !showRateLimitState"
     v-bind="$attrs"
   >
-    Rate limiting
+    {{ t("Rate limiting") }}
   </button>
   <div
     v-if="showRateLimitState"
@@ -33,10 +33,12 @@ import { computed, defineComponent } from "vue";
 import { RATE_LIMIT_RULES } from "./common";
 import { PriceCheckWidget } from "@/web/overlay/interfaces";
 import { AppConfig } from "@/web/Config";
+import { useI18n } from "vue-i18n";
 
 export default defineComponent({
   inheritAttrs: false,
   setup() {
+    const { t } = useI18n();
     const widget = computed(() => AppConfig<PriceCheckWidget>("price-check")!);
 
     const limits = computed(() => {
@@ -86,6 +88,7 @@ export default defineComponent({
     });
 
     return {
+      t,
       limits,
       showRateLimitState,
       isLimited,

@@ -20,7 +20,8 @@
     "release_notes": "更新記錄",
     "report_bug": "在 GitHub 上報告錯誤",
     "quit": "退出",
-    "deprecated": "此功能已淘汰，將於版本 {0} 更新中移除"
+    "deprecated": "此功能已淘汰，將於版本 {0} 更新中移除",
+    "tencent_translating": "正在把國服裝備轉成英文…"
   },
   "map.mods.heist": "劫盜",
   "map.mods.uber": "T17",
@@ -122,7 +123,10 @@
     "find_same_price": "篩選",
     "find_same_price_type": "篩選：",
     "price": "僅限價格",
-    "price_and_item": "價格與物品"
+    "price_and_item": "價格與物品",
+    "wrong_language": "遊戲語言與 EE2 設置不一致",
+    "wrong_language_help": "遊戲是 {0}，EE2 當前是 {1}",
+    "duplicates": "重複：{0}"
   },
   "item_category": {
     "prop": "類別：{0}",
@@ -227,7 +231,8 @@
     "hide_revives": "仅在数值不为 0，而且你不打算用崇高石时才选择吗？",
     "tag_skill": "技能",
     "tag_mutated": "污染的",
-    "fill_rune_iron": "镶嵌满鍛鐵符文"
+    "fill_rune_iron": "镶嵌满鍛鐵符文",
+    "hide_total_all_res": "相比總抗性只增加一點，除非數值很高"
   },
   "online_filter": {
     "offline_toggle": "離線 & 在線",
@@ -332,7 +337,16 @@
     "you_have": "您有",
     "stack": "堆疊",
     "fix_complex_query": "請在設定中禁用\"偽屬性\"選項，或通過內置瀏覽器登錄。",
-    "gem_sockets": "插槽"
+    "gem_sockets": "插槽",
+    "results_warn_tooltip": "在在線篩選中只選崇高石。可以在設置裡關閉這個提醒。",
+    "results_warn_title": "價格可能偏高",
+    "results_warn_message": "市集隱藏了 {0} 到 {1} 崇高石之間的結果",
+    "likely_price_fixed": "多數用非常見通貨標價：",
+    "filter_exalt_divine": "只看崇高石/神聖石",
+    "highest_volume": "成交量最高：",
+    "added_augments": "增幅物品成本：",
+    "tencent_login": "登錄國服市集",
+    "tencent_login_required": "國服市集查價需要登錄（未登錄或登錄已過期）。點“登錄國服市集”，在彈出的窗口裡掃碼或用 QQ 登錄，登錄完成後關閉那個窗口，會自動重新查詢。"
   },
   "settings": {
     "follow_game": "跟隨目前執行的遊戲",
@@ -386,7 +400,20 @@
     "enable_alphas": "啟用實驗性功能",
     "read_client_log": "允許讀取 Client.txt 檔案",
     "client_log_explain": "Client.txt 日誌檔案包含偵錯資訊和聊天記錄。它用於檢測區域變化和玩家等級提升。",
-    "preferred_trade_site": "主要交易網站"
+    "preferred_trade_site": "主要交易網站",
+    "tencent_language_hint": "國服：界面用簡體中文；裝備由助手轉成英文後交給查價，詞綴條件按國服市集的簡體中文顯示。",
+    "tencent_login": "國服市集登錄",
+    "tencent_login_open": "登錄國服市集",
+    "tencent_logout": "退出國服登錄",
+    "tencent_login_hint": "國服查價需要登錄國服市集。登錄狀態保存在本機，過期時查價窗口會提示重新登錄。",
+    "tencent_logged_out": "已退出國服登錄。",
+    "tencent_login_required": "國服市集未登錄或登錄已過期，請先登錄。",
+    "tencent_rates": "取國服匯率",
+    "tencent_rates_loading": "正在從國服通貨兌換取匯率…",
+    "tencent_rates_result": "{0}：1 神聖石 ≈ {1}（在線掛單中位數）",
+    "tencent_rates_none": "通貨兌換裡暫時沒有可用的掛單。",
+    "tencent_currency_exalted": "崇高石",
+    "tencent_currency_chaos": "混沌石"
   },
   "price_check": {
     "name": "價格檢查",
@@ -419,7 +446,16 @@
     "remember_ratio": "記住通貨比例",
     "core_currency": "主要基礎通貨：",
     "default_all_selected": "預設勾選所有篩選",
-    "open_editor_above": "在上方開啟符文插槽選擇器"
+    "open_editor_above": "在上方開啟符文插槽選擇器",
+    "show_suggest_warning": "價格可疑提醒",
+    "show_suggest_warning_none": "關閉",
+    "show_suggest_warning_warn": "顯示提醒",
+    "show_suggest_warning_help": "顯示提醒和說明",
+    "remember_listing": "記住掛單類型",
+    "remember_listing_note": "一般不需要開啟，只給清楚自己在做什麼的人用。",
+    "show_volume": "顯示通貨兌換每小時成交量：",
+    "warn_advanced": "高級設置，沒有遇到問題時不要改",
+    "initial_delay": "首次讀取剪貼板的延遲（按下複製快捷鍵之後）"
   },
   "poe2_new": {
     "beta_warning": "這是 POE2 的測試版，某些功能可能無法正常運作。",
@@ -475,5 +511,20 @@
     "exp_tracking_help_tldr": "簡單來說：盡量將 \"Over\" 維持在 0 或 1",
     "exp_inspire": "根據： ",
     "exp_astrict": "*當角色等級高於 95 級、怪物等級高於 70 級，或是在某些情況下經驗值倍率並非 100% 時，顯示的經驗值獲取比例可能尚未經過完整測試，數值僅供參考，未必完全精確。"
-  }
+  },
+  "Retry": "重試",
+  "Browser": "在瀏覽器打開",
+  "Unable to determine fractured stat": "無法確定破裂詞綴",
+  "Reload fallback data": "重新加載備用數據",
+  "Instant or Online": "即時購買或在線",
+  "Rate limiting": "市集限流中",
+  "item_editor.save_type": "保存給：",
+  "item_editor.caster_weapon": "法系武器",
+  "item_editor.marital_weapon": "近戰武器",
+  "item_editor.sceptre": "權杖",
+  "item_editor.armour": "護甲",
+  "item_editor.all": "默認",
+  "item_editor.save": "保存",
+  "item_editor.confirm": "確認",
+  "item_editor.clear": "清除已保存"
 }

@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import { tradeLeaguePath, withTencentLogin } from "./tencent";
 import { Host } from "@/web/background/IPC";
 import {
   TradeResponse,
@@ -73,20 +74,23 @@ async function requestTradeResultList(
   if (!data) {
     preventQueueCreation([{ count: 1, limiters: RATE_LIMIT_RULES.EXCHANGE }]);
 
-    await RateLimiter.waitMulti(RATE_LIMIT_RULES.EXCHANGE);
+    const response = await withTencentLogin(async () => {
+      await RateLimiter.waitMulti(RATE_LIMIT_RULES.EXCHANGE);
 
-    const response = await Host.proxy(
-      `${getTradeEndpoint()}/api/trade2/exchange/${leagueId}`,
-      {
-        method: "POST",
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
+      const res = await Host.proxy(
+        `${getTradeEndpoint()}/api/trade2/exchange/${tradeLeaguePath(leagueId)}`,
+        {
+          method: "POST",
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
         },
-        body: JSON.stringify(body),
-      },
-    );
-    adjustRateLimits(RATE_LIMIT_RULES.EXCHANGE, response.headers);
+      );
+      adjustRateLimits(RATE_LIMIT_RULES.EXCHANGE, res.headers);
+      return res;
+    });
 
     const _data = (await response.json()) as TradeResponse<SearchResult>;
     if (_data.error) {
