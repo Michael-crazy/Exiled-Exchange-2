@@ -10,8 +10,19 @@
 
 import { TRADE_CURRENCIES, type TradeCurrency } from "./trade-currency";
 import type { EvalResult, EvalSlot } from "./eval-result";
+import {
+  type Gains,
+  MIN_PRICE_DIVINES,
+  compact,
+  gainText,
+  gains,
+  hasGain,
+  isCheap,
+  perPrice,
+} from "@ipc/value-rules";
 
 export { TRADE_CURRENCIES, type TradeCurrency };
+export { MIN_PRICE_DIVINES, compact, gainText, hasGain };
 
 // Header buttons; the rest of the list is in the "more" menu.
 export const COMMON_CURRENCIES = ["exalted", "divine", "chaos"];
@@ -99,32 +110,12 @@ export function priceInBase(
   return { ok: true, value: (price.amount * unit) / baseUnit };
 }
 
-// Below this price (in Divine Orbs) the gains are not divided by it: a
-// 1 Regal Orb item would show gains thousands of times over (V10 #21).
-export const MIN_PRICE_DIVINES = 0.05;
-
-export interface SlotGains {
-  // false when the build has no DPS.
-  hasDps: boolean;
-  // DPS % and effective life gained; null when there is no gain (≤ 0 after
-  // the same rounding as the summary: 0.1 % DPS, 1 effective life).
-  dpsPercent: number | null;
-  ehp: number | null;
-}
+// The rules (no gain, very low price, number format) are shared with the
+// trade window: @ipc/value-rules.
+export type SlotGains = Gains;
 
 export function slotGains(slot: EvalSlot): SlotGains {
-  const percent = slot.dps.percent;
-  const ehp = slot.delta.TotalEHP ?? 0;
-  return {
-    hasDps: percent !== null,
-    dpsPercent:
-      percent !== null && Math.round(percent * 10) > 0 ? percent : null,
-    ehp: Math.round(ehp) > 0 ? ehp : null,
-  };
-}
-
-export function hasGain(gains: SlotGains): boolean {
-  return gains.dpsPercent !== null || gains.ehp !== null;
+  return gains(slot.dps.percent, slot.delta.TotalEHP ?? 0);
 }
 
 export interface SlotValue extends SlotGains {
@@ -140,31 +131,7 @@ export function slotValue(
   cheap = false,
 ): SlotValue | null {
   if (!(priceBase > 0)) return null;
-  const gains = slotGains(slot);
-  const per = (v: number | null) =>
-    v === null ? null : cheap ? v : v / priceBase;
-  return {
-    hasDps: gains.hasDps,
-    dpsPercent: per(gains.dpsPercent),
-    ehp: per(gains.ehp),
-    cheap,
-  };
-}
-
-// Fewer decimals for larger numbers: 123 / 12.3 / 1.23 / 0.012.
-export function compact(value: number): string {
-  const abs = Math.abs(value);
-  const digits = abs >= 100 ? 0 : abs >= 10 ? 1 : abs >= 0.1 ? 2 : 3;
-  const text = value.toFixed(digits);
-  return Number(text) > 0 ? `+${text}` : Number(text) === 0 ? "0" : text;
-}
-
-// A gain of the value line and the comparison list; null is no gain.
-export function gainText(value: number | null, unit = ""): string {
-  if (value === null) return "无提升";
-  const text = compact(value);
-  // Positive but too small for three decimals.
-  return (text === "0" ? "<+0.001" : text) + unit;
+  return { ...perPrice(slotGains(slot), priceBase, cheap), cheap };
 }
 
 // Amount typed in the header: "", "12", "0.5", "1/2"; null when not a price.
@@ -230,7 +197,7 @@ export function entryValue(
   const inBase = price && priceInBase(price, base, rates);
   const slot = entrySlot(entry);
   const divines = price && priceInBase(price, "divine", rates);
-  const cheap = !!divines && divines.ok && divines.value < MIN_PRICE_DIVINES;
+  const cheap = isCheap(divines && divines.ok ? divines.value : null);
   const value =
     inBase && inBase.ok && slot ? slotValue(slot, inBase.value, cheap) : null;
   return { price, inBase, value, noGain: !slot || !hasGain(slotGains(slot)) };

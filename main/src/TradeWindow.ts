@@ -10,6 +10,7 @@ import {
   TRADE_SITES,
   browserUserAgent,
   isTradePage,
+  previewValue,
   previewRequest,
   staysInWindow,
   tradeRealm,
@@ -197,7 +198,7 @@ export class TradeWindow {
           message: reply.error.message,
         });
       } else {
-        job.resolve(reply.result);
+        job.resolve(previewValue(reply.result));
       }
     } catch (err) {
       job.resolve({

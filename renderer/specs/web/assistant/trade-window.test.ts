@@ -7,6 +7,7 @@ import {
   browserUserAgent,
   isTradePage,
   previewRequest,
+  previewValue,
   staysInWindow,
   tradeRealm,
 } from "../../../../main/src/trade-window-rules";
@@ -185,5 +186,68 @@ describe("Tencent session state", () => {
     expect(
       nextCheckDelayMs({ hasServerSession: true, tokenUntil: null }, now),
     ).toBeNull();
+  });
+});
+
+// V10 #21: the trade window shows value for money with the overlay's rules.
+describe("trade window value (same rules as the overlay)", () => {
+  const reply = (
+    dps: number | null,
+    ehp: number,
+    priceInBase: number,
+    priceInDivine: number | null,
+  ) => ({
+    ok: true,
+    slot: { dps_percent: dps, ehp },
+    price: { amount: 1, currency: "divine" },
+    value: {
+      base: "divine",
+      base_name: "神圣石",
+      price_name: "崇高石",
+      price_in_base: priceInBase,
+      price_in_divine: priceInDivine,
+      dps_percent: dps === null ? null : dps / priceInBase,
+      ehp: ehp / priceInBase,
+    },
+  });
+  const valueOf = (r: unknown) =>
+    (r as { value: Record<string, unknown> }).value;
+
+  test("two gains per currency stay numbers", () => {
+    const v = valueOf(previewValue(reply(6, 300, 2, 2)));
+    expect(v).toMatchObject({ price_in_base: 2, dps_percent: 3, ehp: 150 });
+    expect(v.message).toBeUndefined();
+  });
+
+  test("no gain, as on the overlay", () => {
+    const v = valueOf(previewValue(reply(-0.008, -12, 3, 3)));
+    expect(v.message).toBe("每 1 神圣石：无提升");
+    expect(v.price_in_base).toBeUndefined();
+    // One of the two gained: the other says so.
+    expect(valueOf(previewValue(reply(-1, 300, 2, 2))).message).toBe(
+      "每 1 神圣石：DPS 无提升 · 有效生命 +150",
+    );
+  });
+
+  test("below 0.05 Divine Orbs the gains are not divided", () => {
+    // 1 Regal Orb counted in Exalted Orbs: 0.13 exalted, 0.0005 divine.
+    expect(valueOf(previewValue(reply(2.42, 300, 0.13, 0.0005))).message).toBe(
+      "价格极低（不足 0.05 神圣石），只看提升：DPS +2.42% · 有效生命 +300",
+    );
+    // No DPS in the build.
+    expect(valueOf(previewValue(reply(null, 300, 0.01, 0.01))).message).toBe(
+      "价格极低（不足 0.05 神圣石），只看提升：有效生命 +300",
+    );
+  });
+
+  test("errors and replies without a price pass through", () => {
+    const failed = { ok: false, code: "x", message: "y" };
+    expect(previewValue(failed)).toBe(failed);
+    const unknown = {
+      ok: true,
+      slot: { dps_percent: 1, ehp: 1 },
+      value: { message: "不认识的通货：x" },
+    };
+    expect(previewValue(unknown)).toBe(unknown);
   });
 });

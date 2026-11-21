@@ -2,6 +2,15 @@
 // for which server, and which requests from it are accepted. Pure functions,
 // kept apart from Electron so they can be tested.
 
+import {
+  CHEAP_NOTE,
+  gains,
+  gainsText,
+  hasGain,
+  isCheap,
+  perPrice,
+} from "../../ipc/value-rules";
+
 export type TradeRealm = "pc-ggg" | "pc-tencent";
 
 export interface TradeSite {
@@ -122,4 +131,45 @@ export function browserUserAgent(ua: string): string {
   return ua
     .replace(/\s+Electron\/\S+/g, "")
     .replace(/\s+exiled-exchange-2\/\S+/gi, "");
+}
+
+interface PreviewValue {
+  base_name?: string;
+  price_in_base?: number;
+  // Price in Divine Orbs (backend), null without a rate.
+  price_in_divine?: number | null;
+  dps_percent?: number | null;
+  ehp?: number;
+  message?: string;
+}
+
+// The backend's trade-preview reply with the overlay's value rules (V10 #21,
+// @ipc/value-rules): no gain shows "无提升"; below 0.05 Divine Orbs the gains
+// are shown as they are. The page script (the extension's preview.js, kept
+// unchanged) shows numbers per currency, or `message` as it is, so anything
+// other than two plain gains per currency goes into `message`.
+export function previewValue(reply: unknown): unknown {
+  if (typeof reply !== "object" || reply === null) return reply;
+  const r = reply as {
+    slot?: { dps_percent: number | null; ehp: number } | null;
+    value?: PreviewValue | null;
+  };
+  const v = r.value;
+  if (!r.slot || !v || v.price_in_base === undefined) return reply;
+  const g = gains(r.slot.dps_percent, r.slot.ehp);
+  const { price_in_base: priceBase, ...rest } = v;
+  const per = `每 1 ${v.base_name ?? ""}：`;
+  let value: PreviewValue;
+  if (!hasGain(g)) {
+    value = { ...rest, message: `${per}无提升` };
+  } else if (isCheap(v.price_in_divine)) {
+    value = { ...rest, message: `${CHEAP_NOTE}：${gainsText(g)}` };
+  } else {
+    const p = perPrice(g, priceBase, false);
+    value =
+      (p.hasDps && p.dpsPercent === null) || p.ehp === null
+        ? { ...rest, message: per + gainsText(p) }
+        : { ...v, dps_percent: p.dpsPercent, ehp: p.ehp };
+  }
+  return { ...r, value };
 }
