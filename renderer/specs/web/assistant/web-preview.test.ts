@@ -4,6 +4,7 @@ import {
   isWebPreviewPort,
   webPreviewParams,
 } from "@/web/assistant/web-preview";
+import { tencentRates } from "@/web/assistant/price-value";
 
 const settings = {
   webPreview: true,
@@ -46,6 +47,19 @@ describe("web preview settings for the backend (M09a)", () => {
       rates_source: null,
     });
     expect(params.currencies.divine.divines).toBeUndefined();
+  });
+
+  it("sends the typed Tencent rates for the trade window (M09b)", () => {
+    const tencent = tencentRates({
+      tencentExaltedPerDivine: 400,
+      tencentChaosPerDivine: 0,
+      tencentDivinePerMirror: 300,
+    });
+    const params = webPreviewParams(settings, null, tencent);
+    expect(params.tencent_currencies.exalted.divines).toBeCloseTo(1 / 400);
+    expect(params.tencent_currencies.mirror.divines).toBe(300);
+    expect(params.tencent_currencies.chaos.divines).toBeUndefined();
+    expect(params.currencies.exalted.divines).toBeUndefined();
   });
 
   it("accepts ports 1024-65535 only", () => {

@@ -16,6 +16,8 @@ export interface HostConfig {
   // PoE2 assistant: evaluate item text that appears on the clipboard
   // while the game is in front (the in-game market's copy button).
   assistantWatchClipboard: boolean;
+  // PoE2 assistant M09b: which trade site the assistant's trade window opens.
+  realm: string;
 }
 
 export interface ShortcutAction {
@@ -319,7 +321,9 @@ type IpcTencentLogin = Event<
 
 type IpcTencentLoginState = Event<
   "MAIN->CLIENT::tencent-login",
-  { state: "closed" | "refreshed" | "logged-out" }
+  {
+    state: "closed" | "refreshed" | "logged-out" | "logged-in" | "expired";
+  }
 >;
 
 type IpcUpdaterState = Event<"MAIN->CLIENT::updater-state", UpdateInfo>;

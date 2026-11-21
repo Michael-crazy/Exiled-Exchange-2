@@ -1,0 +1,26 @@
+/* PoE2 Build Assistant (M09a): evaluation box in each trade2 result row. */
+.poe2a-box {
+  margin: 6px 0 2px;
+  padding: 4px 6px;
+  border-left: 3px solid #a38d6d;
+  background: rgba(0, 0, 0, 0.35);
+  font: 12px/1.5 "Microsoft YaHei", "PingFang SC", sans-serif;
+  color: #c8c8c8;
+  text-align: left;
+}
+.poe2a-head { color: #a38d6d; font-size: 11px; }
+.poe2a-main { color: #e0e0e0; }
+.poe2a-good { color: #6fd36f; font-weight: bold; }
+.poe2a-bad { color: #e07070; }
+.poe2a-value { color: #e6c35c; }
+.poe2a-muted { color: #8a8a8a; }
+.poe2a-error { color: #e0a060; }
+.poe2a-retry {
+  font-size: 11px;
+  padding: 0 4px;
+  cursor: pointer;
+  background: #333;
+  color: #ddd;
+  border: 1px solid #666;
+  border-radius: 2px;
+}

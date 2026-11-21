@@ -184,7 +184,11 @@ import OnlineFilter from "./OnlineFilter.vue";
 import TradeLinks from "./TradeLinks.vue";
 import { Host } from "@/web/background/IPC";
 import { useBulkApi } from "./bulk-api";
-import { TENCENT_LOGIN_REQUIRED, openTencentLogin } from "./tencent";
+import {
+  TENCENT_LOGIN_REQUIRED,
+  openTencentLogin,
+  whenTencentLoggedIn,
+} from "./tencent";
 
 const slowdown = artificialSlowdown(900);
 
@@ -203,6 +207,23 @@ export default defineComponent({
   setup(props) {
     const widget = computed(() => AppConfig<PriceCheckWidget>("price-check")!);
     const { error, result, search } = useBulkApi();
+
+    // Tencent: the assistant shows its login window when the session cannot
+    // be renewed; search again once the user has logged in there.
+    let waitingForLogin = false;
+    function searchAfterLogin() {
+      if (waitingForLogin) return;
+      waitingForLogin = true;
+      whenTencentLoggedIn().then(() => {
+        waitingForLogin = false;
+        if (error.value === TENCENT_LOGIN_REQUIRED) {
+          search(props.item, props.filters);
+        }
+      });
+    }
+    watch(error, (value) => {
+      if (value === TENCENT_LOGIN_REQUIRED) searchAfterLogin();
+    });
 
     const showBrowser = inject<(url: string) => void>("builtin-browser")!;
 
@@ -279,9 +300,8 @@ export default defineComponent({
       },
       loginRequired: computed(() => error.value === TENCENT_LOGIN_REQUIRED),
       login: () => {
-        openTencentLogin().then(() => {
-          search(props.item, props.filters);
-        });
+        openTencentLogin();
+        searchAfterLogin();
       },
       showSeller: computed(() => widget.value.showSeller),
       makeTradeLink,

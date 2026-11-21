@@ -6,6 +6,8 @@ export class AppTray {
   public overlayKey = "Shift + Space";
   private tray: Tray;
   serverPort = 0;
+  // PoE2 assistant M09b: the trade window of the current server.
+  openTradeWindow: (() => void) | null = null;
 
   constructor(server: ServerEvents) {
     let trayImage = nativeImage.createFromPath(
@@ -35,6 +37,13 @@ export class AppTray {
 
   rebuildMenu() {
     const contextMenu = Menu.buildFromTemplate([
+      {
+        label: "打开市集（试算每条结果）",
+        click: () => {
+          this.openTradeWindow?.();
+        },
+      },
+      { type: "separator" },
       {
         label: "Settings/League",
         click: () => {

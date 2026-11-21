@@ -979,5 +979,6 @@ function getConfigForHost(): HostConfig {
     initialDelay: priceCheck.initialDelay,
     hideOverlayOnBlur: config.hideOverlayOnBlur,
     assistantWatchClipboard: assistantEval.watchClipboard,
+    realm: config.realm,
   };
 }

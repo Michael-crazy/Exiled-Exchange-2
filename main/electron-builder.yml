@@ -6,7 +6,7 @@ files:
   - "package.json"
   - from: "dist"
     to: "."
-    filter: ["main.js", "vision.js"]
+    filter: ["main.js", "vision.js", "trade-preload.js", "trade-preview/**"]
   - from: "../renderer/dist"
     to: "."
 extraMetadata:

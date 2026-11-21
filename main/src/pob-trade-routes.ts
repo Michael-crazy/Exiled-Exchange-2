@@ -6,6 +6,7 @@ export const PREFIX = "/pob-trade/";
 
 export type PobTradeRoute =
   | { kind: "login" }
+  | { kind: "market" }
   | { kind: "leagues"; url: string }
   | { kind: "search"; url: string }
   | { kind: "fetch"; url: string };
@@ -23,6 +24,9 @@ export function pobTradeRoute(
   const params = new URLSearchParams(search);
   if (path === "login" && (method === "POST" || method === "GET")) {
     return { kind: "login" };
+  }
+  if (path === "market" && (method === "POST" || method === "GET")) {
+    return { kind: "market" };
   }
   if (path === "leagues" && method === "GET") {
     return {

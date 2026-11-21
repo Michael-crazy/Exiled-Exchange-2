@@ -1,7 +1,7 @@
 import { shallowRef } from "vue";
 import type { DetectedGame } from "@ipc/types";
 import { Host } from "./IPC";
-import { AppConfig, type Config } from "@/web/Config";
+import { AppConfig, pushHostConfig, type Config } from "@/web/Config";
 
 // The game client detected by the main process.
 export const detectedGame = shallowRef<DetectedGame | null>(null);
@@ -12,7 +12,11 @@ export function initGameInfo() {
     const config = AppConfig();
     if (!game || !config.followGame) return;
 
-    config.realm = game.realm;
+    if (config.realm !== game.realm) {
+      config.realm = game.realm;
+      // The assistant's trade window opens the site of this server (M09b).
+      pushHostConfig();
+    }
     // EE2 has no Simplified Chinese data. On Tencent the price check parses
     // P05's English translation of the item and the interface is Simplified
     // Chinese (uiLanguage); the backend gets the real client language.

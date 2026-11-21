@@ -20,6 +20,7 @@ import { GameDetector } from "./host-files/GameDetector";
 import { AssistantBackend } from "./backend/AssistantBackend";
 import { TencentLogin } from "./TencentLogin";
 import { PobTrade } from "./PobTrade";
+import { TradeWindow } from "./TradeWindow";
 import { followPathOfBuilding } from "./PathOfBuildingParent";
 import { PobSettingsBridge } from "./host-files/PobSettingsBridge";
 import type { HostConfig } from "../../ipc/types";
@@ -84,8 +85,17 @@ let tray: AppTray;
     followPathOfBuilding(logger);
     const pobSettings = new PobSettingsBridge(eventPipe, logger);
     const tencentLogin = new TencentLogin(eventPipe, logger);
+    // The server the renderer works with (settings, or the running game).
+    let currentRealm: string | null = null;
+    const tradeWindow = new TradeWindow(
+      backend,
+      tencentLogin,
+      logger,
+      () => currentRealm ?? gameDetector.current?.realm,
+    );
+    tray.openTradeWindow = () => tradeWindow.open();
     // eslint-disable-next-line no-new
-    new PobTrade(server, backend, tencentLogin, logger);
+    new PobTrade(server, backend, tencentLogin, tradeWindow, logger);
 
     if (process.env.VITE_DEV_SERVER_URL) {
       try {
@@ -155,6 +165,7 @@ let tray: AppTray;
           "CLIENT->MAIN::update-host-config",
           (cfg) => {
             hostCfg = cfg;
+            currentRealm = cfg.realm;
             applyGameSettings();
             shortcuts.updateActions(
               cfg.shortcuts,

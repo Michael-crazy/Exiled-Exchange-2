@@ -3,6 +3,8 @@
 // PoE2-Build-Assistant sources/web-preview.md), which then listens on
 // 127.0.0.1:<port> for the extension and counts value for money the same way
 // as the overlay (price-value.ts).
+// M09b: the assistant's own trade window uses the same rates over stdio, on
+// both servers, so they are sent even while the extension endpoint is off.
 
 import {
   BASE_CURRENCIES,
@@ -30,16 +32,18 @@ export interface WebPreviewParams {
   rates_source: "poe.ninja" | null;
   // Trade id -> Simplified Chinese and English name, value in Divine Orbs.
   currencies: Record<string, { name: string; en: string; divines?: number }>;
+  // The same from the rates typed for the Tencent server (M08b).
+  tencent_currencies: Record<
+    string,
+    { name: string; en: string; divines?: number }
+  >;
 }
 
 export function isWebPreviewPort(v: unknown): boolean {
   return Number.isInteger(v) && (v as number) >= 1024 && (v as number) <= 65535;
 }
 
-export function webPreviewParams(
-  settings: WebPreviewSettings,
-  rates: DivineRates | null,
-): WebPreviewParams {
+function currencyTable(rates: DivineRates | null) {
   const currencies: WebPreviewParams["currencies"] = {};
   for (const c of TRADE_CURRENCIES) {
     if (c.id === "sep") continue;
@@ -50,6 +54,14 @@ export function webPreviewParams(
       ...(divines && divines > 0 ? { divines } : {}),
     };
   }
+  return currencies;
+}
+
+export function webPreviewParams(
+  settings: WebPreviewSettings,
+  rates: DivineRates | null,
+  tencent: DivineRates | null = null,
+): WebPreviewParams {
   return {
     enabled: settings.webPreview,
     port: isWebPreviewPort(settings.webPreviewPort)
@@ -59,6 +71,7 @@ export function webPreviewParams(
       ? settings.valueCurrency
       : DEFAULT_BASE,
     rates_source: rates ? "poe.ninja" : null,
-    currencies,
+    currencies: currencyTable(rates),
+    tencent_currencies: currencyTable(tencent),
   };
 }

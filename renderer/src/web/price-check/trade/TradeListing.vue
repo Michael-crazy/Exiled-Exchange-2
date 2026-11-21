@@ -156,7 +156,11 @@ import OnlineFilter from "./OnlineFilter.vue";
 import TradeLinks from "./TradeLinks.vue";
 import TradeItem from "./TradeItem.vue";
 import { useTradeApi } from "./trade-api";
-import { TENCENT_LOGIN_REQUIRED, openTencentLogin } from "./tencent";
+import {
+  TENCENT_LOGIN_REQUIRED,
+  openTencentLogin,
+  whenTencentLoggedIn,
+} from "./tencent";
 import { GEM, GRANTS_REAL_SKILL } from "@/parser/meta";
 import ItemSumPrice from "@/web/ui/ItemSumPrice.vue";
 import ExtractionValue from "./ExtractionValue.vue";
@@ -201,6 +205,23 @@ export default defineComponent({
     );
 
     const { error, searchResult, groupedResults, search } = useTradeApi();
+
+    // Tencent: the assistant shows its login window when the session cannot
+    // be renewed; search again once the user has logged in there.
+    let waitingForLogin = false;
+    function searchAfterLogin() {
+      if (waitingForLogin) return;
+      waitingForLogin = true;
+      whenTencentLoggedIn().then(() => {
+        waitingForLogin = false;
+        if (error.value === TENCENT_LOGIN_REQUIRED) {
+          search(props.filters, props.stats, props.item);
+        }
+      });
+    }
+    watch(error, (value) => {
+      if (value === TENCENT_LOGIN_REQUIRED) searchAfterLogin();
+    });
 
     const showBrowser = inject<(url: string) => void>("builtin-browser")!;
 
@@ -257,9 +278,8 @@ export default defineComponent({
       },
       loginRequired: computed(() => error.value === TENCENT_LOGIN_REQUIRED),
       login: () => {
-        openTencentLogin().then(() => {
-          search(props.filters, props.stats, props.item);
-        });
+        openTencentLogin();
+        searchAfterLogin();
       },
       execFilterExaltDivine: () => {
         props.filters.trade.currency = "exalted_divine";

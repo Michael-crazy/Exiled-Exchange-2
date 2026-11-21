@@ -38,10 +38,17 @@ export function tradeName(name: string) {
 // requests ask for login at once instead of reloading the page every time.
 let loginNeeded = false;
 
-function waitForLogin(state: "refreshed" | "closed" | "logged-out") {
+type LoginState =
+  | "refreshed"
+  | "closed"
+  | "logged-out"
+  | "logged-in"
+  | "expired";
+
+function waitForLogin(...states: LoginState[]) {
   return new Promise<void>((resolve) => {
     const listener = Host.onEvent("MAIN->CLIENT::tencent-login", (e) => {
-      if (e.state === state) {
+      if (states.includes(e.state)) {
         listener.abort();
         resolve();
       }
@@ -49,12 +56,26 @@ function waitForLogin(state: "refreshed" | "closed" | "logged-out") {
   });
 }
 
+// A login anywhere (the login window, the assistant's trade window or the
+// background renewal) lets requests go out again.
+Host.onEvent("MAIN->CLIENT::tencent-login", (e) => {
+  if (e.state === "logged-in") loginNeeded = false;
+  if (e.state === "expired") loginNeeded = true;
+});
+
+// Opens (or brings to front) the assistant's login window; whenTencentLoggedIn
+// tells when the user is done there.
 export function openTencentLogin() {
   Host.sendEvent({
     name: "CLIENT->MAIN::tencent-login",
     payload: { action: "open" },
   });
-  return waitForLogin("closed").then(() => {
+}
+
+// When the session expired the assistant shows its login window by itself;
+// this resolves once the user logged in there or closed it.
+export function whenTencentLoggedIn() {
+  return waitForLogin("logged-in", "closed").then(() => {
     loginNeeded = false;
   });
 }
@@ -79,7 +100,8 @@ async function refreshTencentLogin() {
 }
 
 // Sends a trade API request; on Tencent a 401 first lets the trade page renew
-// the session in the background and retries once, then asks for login.
+// the session in the background and retries once, then asks for login (the
+// assistant has then shown its login window, see main/src/TencentLogin.ts).
 export async function withTencentLogin(
   send: () => Promise<Response>,
 ): Promise<Response> {

@@ -231,13 +231,16 @@ const rates = computed<DivineRates>(() => {
 // ---- M09a: the trade-site browser extension ----
 // The backend listens for it while the setting is on; it needs the port and,
 // for value for money, poe.ninja's rates (the international trade site).
+// M09b: the assistant's trade window needs the rates of both servers whether
+// or not the extension endpoint is on, so they are always sent.
 let webPreviewSent = "";
-let webPreviewStarted = false;
 function syncWebPreview(again = false) {
-  const enabled = props.config.webPreview;
-  if (!enabled && !webPreviewStarted) return; // nothing to stop
-  if (enabled) ninja.queuePricesFetch();
-  const params = webPreviewParams(props.config, ninjaRates.value);
+  if (realm.value !== "pc-tencent") ninja.queuePricesFetch();
+  const params = webPreviewParams(
+    props.config,
+    ninjaRates.value,
+    tencentRates(props.config),
+  );
   const text = JSON.stringify(params);
   if (!again && text === webPreviewSent) return;
   try {
@@ -250,7 +253,6 @@ function syncWebPreview(again = false) {
       },
     });
     webPreviewSent = text;
-    webPreviewStarted = enabled;
   } catch {
     // Host connection not open yet: the next round sends it.
   }
@@ -260,6 +262,9 @@ watch(
     props.config.webPreview,
     props.config.webPreviewPort,
     props.config.valueCurrency,
+    props.config.tencentExaltedPerDivine,
+    props.config.tencentChaosPerDivine,
+    props.config.tencentDivinePerMirror,
     ninja.xchgRate.value,
   ],
   () => syncWebPreview(),

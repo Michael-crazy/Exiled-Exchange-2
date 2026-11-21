@@ -36,6 +36,10 @@ describe("pobTradeRoute", () => {
     expect(pobTradeRoute("POST", "/pob-trade/login")).toEqual({
       kind: "login",
     });
+    expect(pobTradeRoute("GET", "/pob-trade/market")).toEqual({
+      kind: "market",
+    });
+    expect(pobTradeRoute("DELETE", "/pob-trade/market")).toBeNull();
   });
 
   test("anything else is refused", () => {

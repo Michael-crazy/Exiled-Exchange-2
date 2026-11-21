@@ -1,4 +1,5 @@
 import child_process from 'child_process'
+import fs from 'fs'
 import electron from 'electron'
 import esbuild from 'esbuild'
 
@@ -23,6 +24,21 @@ const visionBuild = await esbuild.build({
   bundle: true,
   platform: 'node',
   outfile: 'dist/vision.js'
+})
+
+// PoE2 assistant M09b: the trade window's preload, and the extension's page
+// script it runs (trade-preview/, copied from poe-trade2text; see SOURCE.md).
+await esbuild.build({
+  entryPoints: ['src/trade-preload.ts'],
+  bundle: true,
+  minify: !isDev,
+  platform: 'node',
+  external: ['electron'],
+  outfile: 'dist/trade-preload.js'
+})
+fs.cpSync('trade-preview', 'dist/trade-preview', {
+  recursive: true,
+  filter: (src) => !src.endsWith('.md') && !src.endsWith('.mjs')
 })
 
 const mainContext = await esbuild.context({

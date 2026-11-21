@@ -2,6 +2,7 @@ import type { IncomingMessage, Server, ServerResponse } from "http";
 import { app, net } from "electron";
 import type { AssistantBackend } from "./backend/AssistantBackend";
 import type { TencentLogin } from "./TencentLogin";
+import type { TradeWindow } from "./TradeWindow";
 import type { Logger } from "./RemoteLogger";
 import { isPobRequest, passedHeaders, pobTradeRoute } from "./pob-trade-routes";
 
@@ -21,7 +22,7 @@ interface Answer {
 }
 
 const LOGIN_MESSAGE =
-  "国服市集未登录或登录已过期：点 Trader 里的“登录国服市集”，在弹出的窗口登录后关闭窗口，再重新搜索。";
+  "国服登录已过期：请在助手弹出的“国服登录已过期”窗口里登录（不是在自己的浏览器里），登录成功后窗口自动关闭，再重新搜索。窗口没出现就点 Trader 里的“登录国服市集”。";
 
 async function send(
   method: string,
@@ -88,6 +89,7 @@ export class PobTrade {
     server: Server,
     private backend: AssistantBackend,
     private login: TencentLogin,
+    private tradeWindow: TradeWindow,
     private logger: Logger,
   ) {
     server.addListener("request", (req, res) => {
@@ -114,6 +116,12 @@ export class PobTrade {
     if (route.kind === "login") {
       this.login.open();
       reply(res, 200, { state: "opened" });
+      return;
+    }
+    if (route.kind === "market") {
+      // M09b: PoB's "打开市集" button.
+      const realm = this.tradeWindow.open();
+      reply(res, 200, { state: "opened", realm });
       return;
     }
 
@@ -143,9 +151,10 @@ export class PobTrade {
     const method = route.kind === "search" ? "POST" : "GET";
     let answer = await send(method, route.url, body);
     if (answer.status === 401) {
-      // The session cookie may be gone while the page's refresh token is not.
+      // The API token may be gone while the page's refresh token is not.
       await this.login.refresh();
       answer = await send(method, route.url, body);
+      if (answer.status === 401) this.login.requireLogin();
     }
     const headers = passedHeaders(answer.headers);
     this.logger.write(`info [PoB trade] ${route.kind} ${answer.status}`);

@@ -346,7 +346,7 @@
     "highest_volume": "成交量最高：",
     "added_augments": "增幅物品成本：",
     "tencent_login": "登录国服市集",
-    "tencent_login_required": "国服市集查价需要登录（未登录或登录已过期）。点“登录国服市集”，在弹出的窗口里扫码或用 QQ 登录，登录完成后关闭那个窗口，会自动重新查询。"
+    "tencent_login_required": "国服登录已过期（或未登录）。请在助手弹出的“国服登录已过期”窗口里扫码或用 QQ 登录（不是在自己的浏览器里），登录成功后窗口自动关闭并重新查询。窗口没出现就点“登录国服市集”。"
   },
   "settings": {
     "follow_game": "跟随目前执行的游戏",
@@ -405,9 +405,9 @@
     "tencent_login": "国服市集登录",
     "tencent_login_open": "登录国服市集",
     "tencent_logout": "退出国服登录",
-    "tencent_login_hint": "国服查价需要登录国服市集。登录状态保存在本机，过期时查价窗口会提示重新登录。",
+    "tencent_login_hint": "国服查价需要登录国服市集。登录状态保存在本机，助手会在后台自动续期；续不上时会弹出助手的登录窗口，请在那个窗口里登录。",
     "tencent_logged_out": "已退出国服登录。",
-    "tencent_login_required": "国服市集未登录或登录已过期，请先登录。",
+    "tencent_login_required": "国服登录已过期（或未登录），请在助手弹出的窗口里登录。",
     "tencent_rates": "取国服汇率",
     "tencent_rates_loading": "正在从国服市集取汇率…",
     "tencent_rates_result": "{0}：1 神圣石 ≈ {1}（在线挂单中位数）",
