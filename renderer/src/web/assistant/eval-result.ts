@@ -1,6 +1,8 @@
 // Result of the backend's evaluate-item, as documented in
 // PoE2-Build-Assistant sources/assistant-shell.md. The overlay only renders it.
 
+import { TRADE_CURRENCIES } from "./trade-currency";
+
 export interface EvalResist {
   label: string;
   before: number;
@@ -99,10 +101,14 @@ const amountFormat = new Intl.NumberFormat("zh-CN", {
   useGrouping: false,
 });
 
-// "一口价 1 蛻變石" / "标价 …"; unknown currencies keep the note's code.
+const TRADE_NAMES = new Map(TRADE_CURRENCIES.map((c) => [c.id, c.zh]));
+
+// "一口价 1 蜕变石" / "标价 …". Simplified names from the trade currency list,
+// as on the value line (V10 #22: the backend gives the client's language);
+// the backend's name, then the note's code, for currencies not in the list.
 export function priceText(price: EvalPrice): string {
   const kind = price.kind === "buyout" ? "一口价" : "标价";
   return `${kind} ${amountFormat.format(price.amount)} ${
-    price.currency_name ?? price.currency
+    TRADE_NAMES.get(price.currency) || price.currency_name || price.currency
   }`;
 }

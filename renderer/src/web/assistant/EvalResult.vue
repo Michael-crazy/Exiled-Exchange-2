@@ -42,7 +42,7 @@
         已自动纠正 BD 中 {{ result.build!.corrected_lines }} 行抗性写法
       </div>
       <PriceInput
-        v-if="!entry.fromNote"
+        v-if="takesTypedPrice(entry)"
         :key="entry.key"
         class="mt-1"
         :amount-text="entry.amountText"
@@ -77,21 +77,29 @@
         {{ slot.summary }}
       </div>
 
-      <div class="text-gray-400" data-testid="value-line">
+      <div
+        v-if="showsValue(entry)"
+        class="text-gray-400"
+        data-testid="value-line"
+      >
         性价比（每 1 {{ currencyName(base)
         }}<template v-if="slotTabs">，{{ slot.label }}</template
         >）：
-        <template v-if="value.value">
-          <template v-if="value.value.dpsPercent !== null">
+        <span v-if="value.noGain" class="text-gray-500">无提升</span>
+        <template v-else-if="value.value">
+          <span v-if="value.value.cheap" class="text-yellow-500"
+            >价格极低（不足 {{ MIN_PRICE_DIVINES }} 神圣石），只看提升：</span
+          >
+          <template v-if="value.value.hasDps">
             DPS
-            <span :class="signClass(value.value.dpsPercent)"
-              >{{ compact(value.value.dpsPercent) }}%</span
-            >
+            <span :class="gainClass(value.value.dpsPercent)">{{
+              gainText(value.value.dpsPercent, "%")
+            }}</span>
             ·
           </template>
           有效生命
-          <span :class="signClass(value.value.ehp)">{{
-            compact(value.value.ehp)
+          <span :class="gainClass(value.value.ehp)">{{
+            gainText(value.value.ehp)
           }}</span>
         </template>
         <span
@@ -219,9 +227,12 @@ import {
 import {
   type Entry,
   type EntryValue,
-  compact,
+  MIN_PRICE_DIVINES,
   currencyName,
   entrySlot,
+  gainText,
+  showsValue,
+  takesTypedPrice,
 } from "./price-value";
 import PriceInput from "./PriceInput.vue";
 
@@ -302,14 +313,8 @@ function dpsBrief(s: EvalSlot): string {
   return signed(s.dps.absolute);
 }
 
-function signClass(value: number): string {
-  return trendClass(
-    Number(compact(value)) > 0
-      ? "up"
-      : Number(compact(value)) < 0
-        ? "down"
-        : "same",
-  );
+function gainClass(value: number | null): string {
+  return value === null ? "text-gray-500" : "text-green-400";
 }
 
 function amountLabel(value: number): string {

@@ -99,18 +99,55 @@ export function priceInBase(
   return { ok: true, value: (price.amount * unit) / baseUnit };
 }
 
-export interface SlotValue {
-  // DPS % gained per 1 base currency; null when the build has no DPS.
+// Below this price (in Divine Orbs) the gains are not divided by it: a
+// 1 Regal Orb item would show gains thousands of times over (V10 #21).
+export const MIN_PRICE_DIVINES = 0.05;
+
+export interface SlotGains {
+  // false when the build has no DPS.
+  hasDps: boolean;
+  // DPS % and effective life gained; null when there is no gain (≤ 0 after
+  // the same rounding as the summary: 0.1 % DPS, 1 effective life).
   dpsPercent: number | null;
-  // Effective life gained per 1 base currency.
-  ehp: number;
+  ehp: number | null;
 }
 
-export function slotValue(slot: EvalSlot, priceBase: number): SlotValue | null {
-  if (!(priceBase > 0)) return null;
+export function slotGains(slot: EvalSlot): SlotGains {
+  const percent = slot.dps.percent;
+  const ehp = slot.delta.TotalEHP ?? 0;
   return {
-    dpsPercent: slot.dps.percent === null ? null : slot.dps.percent / priceBase,
-    ehp: (slot.delta.TotalEHP ?? 0) / priceBase,
+    hasDps: percent !== null,
+    dpsPercent:
+      percent !== null && Math.round(percent * 10) > 0 ? percent : null,
+    ehp: Math.round(ehp) > 0 ? ehp : null,
+  };
+}
+
+export function hasGain(gains: SlotGains): boolean {
+  return gains.dpsPercent !== null || gains.ehp !== null;
+}
+
+export interface SlotValue extends SlotGains {
+  // Price below MIN_PRICE_DIVINES: the gains as they are, not per currency.
+  cheap: boolean;
+}
+
+// Gains per 1 base currency (priceBase: the price in it), or as they are
+// when the price is very low.
+export function slotValue(
+  slot: EvalSlot,
+  priceBase: number,
+  cheap = false,
+): SlotValue | null {
+  if (!(priceBase > 0)) return null;
+  const gains = slotGains(slot);
+  const per = (v: number | null) =>
+    v === null ? null : cheap ? v : v / priceBase;
+  return {
+    hasDps: gains.hasDps,
+    dpsPercent: per(gains.dpsPercent),
+    ehp: per(gains.ehp),
+    cheap,
   };
 }
 
@@ -120,6 +157,14 @@ export function compact(value: number): string {
   const digits = abs >= 100 ? 0 : abs >= 10 ? 1 : abs >= 0.1 ? 2 : 3;
   const text = value.toFixed(digits);
   return Number(text) > 0 ? `+${text}` : Number(text) === 0 ? "0" : text;
+}
+
+// A gain of the value line and the comparison list; null is no gain.
+export function gainText(value: number | null, unit = ""): string {
+  if (value === null) return "无提升";
+  const text = compact(value);
+  // Positive but too small for three decimals.
+  return (text === "0" ? "<+0.001" : text) + unit;
 }
 
 // Amount typed in the header: "", "12", "0.5", "1/2"; null when not a price.
@@ -158,10 +203,22 @@ export function entryPrice(entry: Entry): Price | null {
   return amount === null ? null : { amount, currency: entry.currency };
 }
 
+// International items need a price note (market copy) for a value; on
+// Tencent the market copy has none, so the price is typed in (V10 #19).
+export function takesTypedPrice(entry: Entry): boolean {
+  return !entry.fromNote && entry.realm === "pc-tencent";
+}
+
+export function showsValue(entry: Entry): boolean {
+  return entry.fromNote || takesTypedPrice(entry);
+}
+
 export interface EntryValue {
   price: Price | null;
   inBase: PriceInBase | null;
   value: SlotValue | null;
+  // Neither DPS nor effective life goes up: shown as "无提升", listed last.
+  noGain: boolean;
 }
 
 export function entryValue(
@@ -172,9 +229,25 @@ export function entryValue(
   const price = entryPrice(entry);
   const inBase = price && priceInBase(price, base, rates);
   const slot = entrySlot(entry);
+  const divines = price && priceInBase(price, "divine", rates);
+  const cheap = !!divines && divines.ok && divines.value < MIN_PRICE_DIVINES;
   const value =
-    inBase && inBase.ok && slot ? slotValue(slot, inBase.value) : null;
-  return { price, inBase, value };
+    inBase && inBase.ok && slot ? slotValue(slot, inBase.value, cheap) : null;
+  return { price, inBase, value, noGain: !slot || !hasGain(slotGains(slot)) };
+}
+
+// Comparison list order: values per currency (best first), then very cheap
+// items with their plain gains, then items without a price, then no gain.
+export function valueOrder(a: EntryValue, b: EntryValue): number {
+  const group = (v: EntryValue) =>
+    v.noGain ? 3 : !v.value ? 2 : v.value.cheap ? 1 : 0;
+  // Larger first; no gain (null) after any gain.
+  const desc = (k: "dpsPercent" | "ehp") => {
+    const x = a.value?.[k] ?? null;
+    const y = b.value?.[k] ?? null;
+    return x === y ? 0 : y === null ? -1 : x === null ? 1 : y - x;
+  };
+  return group(a) - group(b) || desc("dpsPercent") || desc("ehp");
 }
 
 export function amountText(amount: number): string {

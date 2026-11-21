@@ -40,18 +40,25 @@
           </td>
           <td class="text-right whitespace-nowrap pl-1 text-yellow-300">
             {{ row.price }}
+            <div
+              v-if="row.cheap"
+              class="text-yellow-500"
+              title="价格不足 0.05 神圣石：右边是提升本身，不按每 1 神圣石计算"
+            >
+              价格极低
+            </div>
           </td>
           <td
             class="text-right whitespace-nowrap pl-1"
-            :class="cellClass(row.dps, bestDps)"
+            :class="cellClass(row, 'dpsPercent', bestDps)"
           >
-            {{ row.dps === null ? "—" : `${compact(row.dps)}%` }}
+            {{ cellText(row, "dpsPercent") }}
           </td>
           <td
             class="text-right whitespace-nowrap pl-1"
-            :class="cellClass(row.ehp, bestEhp)"
+            :class="cellClass(row, 'ehp', bestEhp)"
           >
-            {{ row.ehp === null ? "—" : compact(row.ehp) }}
+            {{ cellText(row, "ehp") }}
           </td>
         </tr>
       </tbody>
@@ -65,9 +72,10 @@ import {
   type Entry,
   type EntryValue,
   amountText,
-  compact,
   currencyName,
   entrySlot,
+  gainText,
+  valueOrder,
 } from "./price-value";
 
 const props = defineProps<{
@@ -82,35 +90,58 @@ const emit = defineEmits<{
   (e: "clear"): void;
 }>();
 
-const rows = computed(() =>
-  props.entries.map((entry) => {
-    const v = props.valueOf(entry);
-    const slot = entrySlot(entry);
-    return {
+type Row = {
+  entry: Entry;
+  v: EntryValue;
+  name: string;
+  slotLabel: string | null | undefined;
+  price: string;
+  cheap: boolean;
+};
+type Metric = "dpsPercent" | "ehp";
+
+// Best value first; items without a gain last (V10 #21).
+const rows = computed<Row[]>(() =>
+  props.entries
+    .map((entry) => ({ entry, v: props.valueOf(entry) }))
+    .sort((a, b) => valueOrder(a.v, b.v))
+    .map(({ entry, v }) => ({
       entry,
+      v,
       name:
         entry.result.item.name || entry.result.item.base_name || "未命名装备",
-      slotLabel: entry.result.slots.length > 1 ? slot?.label : null,
+      slotLabel: entry.result.slots.length > 1 ? entrySlot(entry)?.label : null,
       price: v.price
         ? `${amountText(v.price.amount)} ${currencyName(v.price.currency)}`
         : "—",
-      dps: v.value?.dpsPercent ?? null,
-      ehp: v.value ? v.value.ehp : null,
-    };
-  }),
+      cheap: !v.noGain && !!v.value?.cheap,
+    })),
 );
 
-function best(values: Array<number | null>): number | null {
-  const known = values.filter((v): v is number => v !== null);
+function cellText(row: Row, metric: Metric): string {
+  if (row.v.noGain) return "无提升";
+  const value = row.v.value;
+  if (!value || (metric === "dpsPercent" && !value.hasDps)) return "—";
+  return gainText(value[metric], metric === "dpsPercent" ? "%" : "");
+}
+
+// Highlighted only among values per currency (not the very cheap ones).
+function best(metric: Metric): number | null {
+  const known = rows.value
+    .filter((r) => !r.v.noGain && r.v.value && !r.v.value.cheap)
+    .map((r) => r.v.value![metric])
+    .filter((v): v is number => v !== null);
   return known.length > 1 ? Math.max(...known) : null;
 }
-const bestDps = computed(() => best(rows.value.map((r) => r.dps)));
-const bestEhp = computed(() => best(rows.value.map((r) => r.ehp)));
+const bestDps = computed(() => best("dpsPercent"));
+const bestEhp = computed(() => best("ehp"));
 
-function cellClass(value: number | null, bestValue: number | null) {
+function cellClass(row: Row, metric: Metric, bestValue: number | null) {
+  const value = row.v.noGain ? null : (row.v.value?.[metric] ?? null);
   if (value === null) return "text-gray-500";
-  if (bestValue !== null && value === bestValue && value > 0)
+  if (row.cheap) return "text-gray-400";
+  if (bestValue !== null && value === bestValue)
     return "text-green-400 font-bold";
-  return value < 0 ? "text-red-400" : "text-gray-200";
+  return "text-gray-200";
 }
 </script>
