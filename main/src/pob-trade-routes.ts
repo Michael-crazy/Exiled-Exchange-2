@@ -12,7 +12,8 @@ export type PobTradeRoute =
 
 // "/pob-trade/<path>" with method -> the Tencent API URL it stands for, or null.
 // Only these fixed endpoints are reachable; the league is one path segment as
-// PoB encoded it, ids and the query id are plain tokens.
+// PoB encoded it, ids are plain tokens and the query id is base64url (the
+// Tencent site returns the gzipped query itself as the id).
 export function pobTradeRoute(
   method: string | undefined,
   url: string | undefined,
@@ -38,7 +39,7 @@ export function pobTradeRoute(
   }
   m = /^fetch\/([A-Za-z0-9]+(?:,[A-Za-z0-9]+){0,9})$/.exec(path);
   const query = params.get("query");
-  if (m && method === "GET" && query && /^[A-Za-z0-9]+$/.test(query)) {
+  if (m && method === "GET" && query && /^[A-Za-z0-9_-]+$/.test(query)) {
     return {
       kind: "fetch",
       url: `${TENCENT_ORIGIN}/api/trade2/fetch/${m[1]}?query=${query}&realm=poe2`,

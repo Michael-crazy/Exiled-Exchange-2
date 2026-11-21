@@ -25,6 +25,12 @@ describe("pobTradeRoute", () => {
     });
   });
 
+  test("Tencent search ids are base64url", () => {
+    expect(
+      pobTradeRoute("GET", "/pob-trade/fetch/aa11?query=H4sI_A-z09")?.kind,
+    ).toBe("fetch");
+  });
+
   test("leagues and login", () => {
     expect(pobTradeRoute("GET", "/pob-trade/leagues")?.kind).toBe("leagues");
     expect(pobTradeRoute("POST", "/pob-trade/login")).toEqual({
