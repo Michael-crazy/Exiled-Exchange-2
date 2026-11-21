@@ -4,14 +4,15 @@
 // looked at.
 //
 // The site keeps three layers (handoff/M02.md, "登录续期"):
-// - POESESSID: the server session (HttpOnly, 30 days); without it /trade2
-//   redirects to /login.
+// - POESESSID: the server session (HttpOnly, 30 days). The trade API accepts
+//   it alone (tested: a search with POETOKEN removed answers 200); once the
+//   server drops it, /trade2 redirects to /login and the API answers 401.
 // - __POESESSION / __POEREFRESH in the page's localStorage: JWTs from the
 //   site's own OAuth (24 hours / 7 days).
-// - POETOKEN: the page copies the session JWT into this cookie (same 24-hour
-//   expiry); the trade API accepts requests that carry it.
-// Loading /trade2 with a live server session or refresh token lets the page
-// write a new POETOKEN.
+// - POETOKEN: written when the user logs in (24 hours), so its appearance
+//   marks a fresh login.
+// A background load of /trade2 tells which case it is: a new POETOKEN or a
+// trade page means the session is alive, the login page means it is gone.
 
 export const TENCENT_ORIGIN = "https://poe.game.qq.com";
 export const TENCENT_HOST = "poe.game.qq.com";

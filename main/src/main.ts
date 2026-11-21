@@ -3,6 +3,8 @@
 import { app, systemPreferences } from "electron";
 import { uIOhook } from "uiohook-napi";
 import os from "node:os";
+import fs from "fs";
+import path from "path";
 import { startServer, eventPipe, server } from "./server";
 import { Logger } from "./RemoteLogger";
 import { GameWindow } from "./windowing/GameWindow";
@@ -24,6 +26,20 @@ import { TradeWindow } from "./TradeWindow";
 import { followPathOfBuilding } from "./PathOfBuildingParent";
 import { PobSettingsBridge } from "./host-files/PobSettingsBridge";
 import type { HostConfig } from "../../ipc/types";
+
+// The server in the saved config, for when no renderer has sent its host
+// config yet (e.g. --no-overlay): PoB's "打开市集" still opens the right site.
+function savedRealm(): string | null {
+  try {
+    const file = path.join(app.getPath("userData"), "apt-data", "config.json");
+    const realm = (
+      JSON.parse(fs.readFileSync(file, "utf-8")) as { realm?: unknown }
+    ).realm;
+    return typeof realm === "string" ? realm : null;
+  } catch {
+    return null;
+  }
+}
 
 if (!app.requestSingleInstanceLock()) {
   app.exit();
@@ -91,7 +107,7 @@ let tray: AppTray;
       backend,
       tencentLogin,
       logger,
-      () => currentRealm ?? gameDetector.current?.realm,
+      () => currentRealm ?? savedRealm() ?? gameDetector.current?.realm,
     );
     tray.openTradeWindow = () => tradeWindow.open();
     // eslint-disable-next-line no-new
